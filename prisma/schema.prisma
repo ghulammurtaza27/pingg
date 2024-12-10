@@ -61,6 +61,7 @@ model Agent {
   id        String    @id @default(cuid())
   name      String
   type      String
+  status    String?
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime  @default(now())
@@ -68,6 +69,7 @@ model Agent {
   sentRequests     Request[] @relation("SenderAgent")
   receivedRequests Request[] @relation("RecipientAgent")
   knowledgeBaseQuestions KnowledgeBaseQuestion[]
+  knowledgeBases KnowledgeBase[]
 }
 
 model Request {
@@ -103,5 +105,46 @@ model KnowledgeBaseQuestion {
 
   @@index([agentId])
   @@index([userId])
+}
+
+// ... existing models remain the same ...
+
+model KnowledgeBase {
+  id              String                        @id @default(cuid())
+  agentId         String
+  agent           Agent                         @relation(fields: [agentId], references: [id])
+  industry        String
+  useCase         String
+  mainGoals       String[]
+  entries         KnowledgeBaseEntry[]
+  coalesced       Boolean                       @default(false)
+  coalescedSummary KnowledgeBaseCoalescedSummary?
+  createdAt       DateTime                      @default(now())
+  updatedAt       DateTime                      @updatedAt
+}
+
+model KnowledgeBaseCoalescedSummary {
+  id                String        @id @default(cuid())
+  knowledgeBaseId   String        @unique
+  knowledgeBase     KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id], onDelete: Cascade)
+  summary           String        @db.Text
+  capabilities      String[]
+  useCases          String[]
+  limitations       String[]
+  additionalContext String?       @db.Text
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+}
+
+// KnowledgeBaseEntry model remains the same
+
+model KnowledgeBaseEntry {
+  id              String        @id @default(cuid())
+  knowledgeBaseId String
+  knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id])
+  question        String
+  answer          String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { geminiModel } from "@/lib/gemini"
 import { Session } from "next-auth"
@@ -27,7 +27,7 @@ function isValidSession(session: Session | null): session is CustomSession {
 }
 
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(nextAuthConfig)
 
   if (!isValidSession(session)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

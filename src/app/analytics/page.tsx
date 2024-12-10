@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card'
@@ -28,30 +28,38 @@ function AnalyticsCard({ title, description, value }: { title: string; descripti
 }
 
 export default function AnalyticsPage() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
   const router = useRouter()
 
-  const fetchAnalytics = useCallback(async () => {
-    try {
-      const response = await fetch('/api/analytics')
-      if (!response.ok) throw new Error('Failed to fetch analytics')
-      const data = await response.json()
-      setAnalyticsData(data)
-    } catch (error) {
-      console.error('Error fetching analytics:', error)
-      // Handle error appropriately
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/login")
     }
-  }, [])
+  }, [status, router])
 
   useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        const response = await fetch('/api/analytics')
+        if (!response.ok) throw new Error('Failed to fetch analytics')
+        const data = await response.json()
+        setAnalyticsData(data)
+      } catch (error) {
+        console.error('Error fetching analytics:', error)
+      }
+    }
+
     if (session) {
       fetchAnalytics()
     }
-  }, [session, fetchAnalytics])
+  }, [session])
+
+  if (status === "loading") {
+    return <div className="container mx-auto py-8">Loading...</div>
+  }
 
   if (!session) {
-    router.push("/login")
     return null
   }
 

@@ -1,35 +1,14 @@
 import { NextAuthOptions } from "next-auth"
-import { PrismaAdapter } from "@next-auth/prisma-adapter"
 import CredentialsProvider from "next-auth/providers/credentials"
-import bcrypt from "bcrypt"
-import prisma from "@/lib/prisma"
-import { Session } from "next-auth"
+import prisma from "./prisma"
+import { compare } from "bcrypt"
 
-// Define custom session type
-interface CustomSession extends Session {
-  user: {
-    id: string
-    email?: string | null
-    name?: string | null
-    image?: string | null
-  }
-}
-
-// Define the type for the user object in the session
-interface SessionUser {
-  id: string
-  email?: string | null
-  name?: string | null
-  image?: string | null
-}
-
-export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma),
+export const nextAuthConfig: NextAuthOptions = {
   providers: [
     CredentialsProvider({
-      name: "Credentials",
+      name: "credentials",
       credentials: {
-        email: { label: "Email", type: "text" },
+        email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
@@ -43,14 +22,11 @@ export const authOptions: NextAuthOptions = {
           }
         })
 
-        if (!user || !user.password) {
+        if (!user) {
           return null
         }
 
-        const isPasswordValid = await bcrypt.compare(
-          credentials.password,
-          user.password
-        )
+        const isPasswordValid = await compare(credentials.password, user.password)
 
         if (!isPasswordValid) {
           return null
@@ -59,31 +35,29 @@ export const authOptions: NextAuthOptions = {
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: user.name
         }
       }
     })
   ],
-  session: {
-    strategy: "jwt"
+  callbacks: {
+    jwt: async ({ token, user }) => {
+      if (user) {
+        token.id = user.id
+      }
+      return token
+    },
+    session: async ({ session, token }) => {
+      if (token) {
+        session.user.id = token.id as string
+      }
+      return session
+    }
   },
   pages: {
-    signIn: "/login",
+    signIn: '/login',
   },
-  callbacks: {
-    session: async ({ session, token }): Promise<CustomSession> => {
-      if (session?.user) {
-        (session.user as SessionUser).id = token.uid as string;
-      }
-      return session as CustomSession;
-    },
-    jwt: async ({ user, token }) => {
-      if (user) {
-        token.uid = user.id;
-      }
-      return token;
-    },
-  },
-  secret: process.env.NEXTAUTH_SECRET,
-  debug: process.env.NODE_ENV === "development",
+  session: {
+    strategy: "jwt"
+  }
 } 

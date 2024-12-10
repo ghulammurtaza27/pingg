@@ -50,11 +50,7 @@ export default function AgentsPage() {
     }
   }
 
-  if (status === "loading") {
-    return null
-  }
-
-  if (!session) {
+  if (status === "loading" || !session) {
     return null
   }
 
@@ -82,12 +78,14 @@ export default function AgentsPage() {
                   <span className={`text-sm font-medium ${
                     agent.status === 'active' ? 'text-green-500' : 'text-gray-500'
                   }`}>
-                    {agent.status.charAt(0).toUpperCase() + agent.status.slice(1)}
+                    {agent.status ? agent.status.charAt(0).toUpperCase() + agent.status.slice(1) : 'Unknown'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Last Active</span>
-                  <span className="text-sm">{new Date(agent.lastActive).toLocaleDateString()}</span>
+                  <span className="text-sm">
+                    {agent.lastActive ? new Date(agent.lastActive).toLocaleDateString() : 'Never'}
+                  </span>
                 </div>
               </div>
             </CardContent>

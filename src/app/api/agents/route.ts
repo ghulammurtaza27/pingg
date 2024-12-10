@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { Session } from 'next-auth'
 
@@ -23,7 +23,7 @@ function isValidSession(session: unknown): session is ValidSession {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(nextAuthConfig)
 
   if (!session || !isValidSession(session)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -39,21 +39,38 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(nextAuthConfig)
 
-  if (!session || !isValidSession(session)) {
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const body = await request.json()
-  const newAgent = await prisma.agent.create({
-    data: {
-      name: body.name,
-      type: body.type,
-      userId: session.user.id
-    }
-  })
+  try {
+    const { name, type, status } = await request.json()
 
-  return NextResponse.json(newAgent, { status: 201 })
+    if (!name || !type) {
+      return NextResponse.json(
+        { error: "Name and type are required" },
+        { status: 400 }
+      )
+    }
+
+    const agent = await prisma.agent.create({
+      data: {
+        name,
+        type,
+        status,
+        userId: session.user.id
+      }
+    })
+
+    return NextResponse.json(agent)
+  } catch (error) {
+    console.error("Error creating agent:", error instanceof Error ? error.message : 'Unknown error')
+    return NextResponse.json(
+      { error: "Failed to create agent" },
+      { status: 500 }
+    )
+  }
 }
 

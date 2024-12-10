@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { Session } from 'next-auth'
 
@@ -24,7 +24,7 @@ function isValidSession(session: unknown): session is ValidSession {
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(nextAuthConfig)
 
     if (!session || !isValidSession(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -44,7 +44,7 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(nextAuthConfig)
 
     if (!session || !isValidSession(session)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -67,5 +67,10 @@ export async function PUT(request: Request) {
     console.error('Update goals error:', error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
+}
+
+export async function POST() {
+  const session = await getServerSession(nextAuthConfig)
+  // ... rest of code
 }
 

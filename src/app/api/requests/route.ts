@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { calculateRelevanceScore } from '@/app/utils/relevanceScoring'
 import { Session } from 'next-auth'
@@ -24,7 +24,7 @@ function isValidSession(session: unknown): session is ValidSession {
 }
 
 export async function GET(request: Request) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(nextAuthConfig)
 
   if (!session || !isValidSession(session)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -33,57 +33,82 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const page = parseInt(searchParams.get('page') || '1')
   const limit = parseInt(searchParams.get('limit') || '5')
-  const skip = (page - 1) * limit
+  const query = searchParams.get('query')
 
   try {
+    const skip = (page - 1) * limit
+    const where = {
+      userId: session.user.id,
+      ...(query ? {
+        content: {
+          contains: query,
+          mode: 'insensitive'
+        }
+      } : {})
+    }
+
     const [requests, total] = await Promise.all([
       prisma.request.findMany({
-        where: { userId: session.user.id },
-        include: {
-          senderAgent: true,
-          recipientAgent: true
+        where,
+        orderBy: {
+          createdAt: 'desc'
         },
         skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' }
+        take: limit
       }),
-      prisma.request.count({ where: { userId: session.user.id } })
+      prisma.request.count({ where })
     ])
 
-    const totalPages = Math.ceil(total / limit)
-
-    return NextResponse.json({ requests, totalPages, currentPage: page })
+    return NextResponse.json({
+      requests,
+      pagination: {
+        total,
+        pages: Math.ceil(total / limit),
+        page,
+        limit
+      }
+    })
   } catch (error) {
     console.error('Error fetching requests:', error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    return NextResponse.json(
+      { error: "Failed to fetch requests" },
+      { status: 500 }
+    )
   }
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession(nextAuthConfig)
 
-  if (!session || !isValidSession(session)) {
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const body = await request.json()
-  const relevanceScore = calculateRelevanceScore(
-    body.summary + ' ' + body.considerations,
-    body.organizationalGoals
-  )
+  try {
+    const { content } = await request.json()
 
-  const newRequest = await prisma.request.create({
-    data: {
-      summary: body.summary,
-      considerations: body.considerations,
-      relevanceScore,
-      senderAgentId: body.senderAgentId,
-      recipientAgentId: body.recipientAgentId,
-      userId: session.user.id
+    if (!content) {
+      return NextResponse.json(
+        { error: "Content is required" },
+        { status: 400 }
+      )
     }
-  })
 
-  return NextResponse.json(newRequest, { status: 201 })
+    const newRequest = await prisma.request.create({
+      data: {
+        content,
+        userId: session.user.id
+      }
+    })
+
+    return NextResponse.json(newRequest)
+  } catch (error) {
+    console.error("Error creating request:", error)
+    return NextResponse.json(
+      { error: "Failed to create request" },
+      { status: 500 }
+    )
+  }
 }
 
 export async function PUT(request: Request) {
