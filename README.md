@@ -50,9 +50,16 @@ The application features a sophisticated dark-themed interface with:
 - **UI Components**: Tailwind CSS with shadcn/ui
 - **Authentication**: NextAuth.js
 - **API**: Next.js API routes
-- **Database**: Prisma ORM
+- **Database**: PostgreSQL with Prisma ORM
 
 ## Getting Started
+
+### Prerequisites
+- Node.js 18+ installed
+- PostgreSQL installed and running
+- npm or yarn package manager
+
+### Installation
 
 1. Clone the repository:
 ```bash
@@ -69,12 +76,53 @@ npm install
 cp .env.example .env.local
 ```
 
-4. Run the development server:
+4. Configure your `.env.local` file:
+```env
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/pingai?schema=public"
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key"
+
+# Add any other required environment variables
+```
+
+### Database Setup
+
+1. Create a PostgreSQL database:
+```sql
+CREATE DATABASE pingg;
+```
+
+2. Initialize Prisma:
+```bash
+npx prisma generate
+```
+
+3. Run database migrations:
+```bash
+npx prisma migrate dev
+```
+
+4. (Optional) Seed the database:
+```bash
+npx prisma db seed
+```
+
+5. View your database with Prisma Studio:
+```bash
+npx prisma studio
+```
+
+### Running the Application
+
+1. Start the development server:
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Project Structure
 
@@ -84,12 +132,36 @@ src/
 ├── components/       # Reusable UI components
 ├── lib/             # Utility functions and shared logic
 ├── prisma/          # Database schema and migrations
+│   ├── migrations/  # Database migrations
+│   ├── schema.prisma# Database schema
+│   └── seed.ts     # Database seeding script
 └── types/           # TypeScript type definitions
 ```
+
+## Database Schema
+
+The main entities in the database are:
+- `Agent`: Represents AI agents in the system
+- `Request`: Stores communication requests between agents
+- `Knowledge`: Maintains the knowledge base entries
+- `User`: Manages user authentication and sessions
 
 ## Contributing
 
 Contributions are welcome! Please read our contributing guidelines before submitting pull requests.
+
+## Troubleshooting
+
+Common issues and solutions:
+
+1. Database Connection Issues:
+   - Verify PostgreSQL is running
+   - Check DATABASE_URL in .env.local
+   - Ensure database exists
+
+2. Migration Issues:
+   - Reset database: `npx prisma migrate reset`
+   - Update schema: `npx prisma generate`
 
 ## License
 
