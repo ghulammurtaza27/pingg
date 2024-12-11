@@ -5,62 +5,48 @@ import prisma from "@/lib/prisma"
 
 export async function GET(request: Request) {
   try {
-    const session = await getServerSession(nextAuthConfig)
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: { message: "Unauthorized" } },
-        { status: 401 }
-      )
-    }
-
     const { searchParams } = new URL(request.url)
-    const agentId = searchParams.get('agentId')
+    const id = searchParams.get('id')
 
-    if (!agentId) {
-      return NextResponse.json(
-        { success: false, error: { message: "Agent ID is required" } },
+    if (!id) {
+      return new Response(
+        JSON.stringify({ success: false, error: { message: "ID is required" } }),
         { status: 400 }
       )
     }
 
-    const knowledgeBase = await prisma.knowledgeBase.findFirst({
-      where: { agentId },
-      select: {
-        id: true,
-        agentId: true,
-        coalesced: true,
-        entries: {
-          select: {
-            id: true,
-            question: true,
-            answer: true
-          }
-        }
+    const knowledgeBase = await prisma.knowledgeBase.findUnique({
+      where: { id },
+      include: {
+        agent: true,
+        entries: true,
+        coalescedSummary: true
       }
     })
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        knowledgeBase: knowledgeBase ? {
-          id: knowledgeBase.id,
-          agentId: knowledgeBase.agentId,
-          coalesced: Boolean(knowledgeBase.coalesced),
-          entries: knowledgeBase.entries || []
-        } : null
-      }
-    })
+    console.log('API: Found knowledge base with summary:', knowledgeBase?.coalescedSummary)
 
+    if (!knowledgeBase) {
+      return new Response(
+        JSON.stringify({ success: false, error: { message: "Knowledge base not found" } }),
+        { status: 404 }
+      )
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        data: { knowledgeBase }
+      }),
+      { status: 200 }
+    )
   } catch (error) {
     console.error('API Error:', error)
-    return NextResponse.json(
-      { 
+    return new Response(
+      JSON.stringify({ 
         success: false, 
-        error: { 
-          message: "Server error",
-          details: error instanceof Error ? error.message : 'Unknown error'
-        } 
-      },
+        error: { message: "Server error" } 
+      }),
       { status: 500 }
     )
   }

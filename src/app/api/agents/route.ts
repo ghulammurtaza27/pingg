@@ -2,75 +2,127 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { Session } from 'next-auth'
-
-type ValidSession = Session & {
-  user: {
-    id: string
-  }
-}
-
-function isValidSession(session: unknown): session is ValidSession {
-  return Boolean(
-    session &&
-    typeof session === 'object' &&
-    'user' in session &&
-    session.user &&
-    typeof session.user === 'object' &&
-    'id' in session.user &&
-    typeof session.user.id === 'string'
-  )
-}
 
 export async function GET() {
-  const session = await getServerSession(nextAuthConfig)
-
-  if (!session || !isValidSession(session)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  const agents = await prisma.agent.findMany({
-    where: {
-      userId: session.user.id
+  try {
+    const session = await getServerSession(nextAuthConfig)
+    if (!session?.user?.email) {
+      return NextResponse.json({ 
+        success: false,
+        error: "Unauthorized" 
+      }, { status: 401 })
     }
-  })
 
-  return NextResponse.json(agents)
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!user) {
+      return NextResponse.json({ 
+        success: false,
+        error: "User not found" 
+      }, { status: 404 })
+    }
+
+    // Get user's agents
+    const agents = await prisma.agent.findMany({
+      where: {
+        userId: user.id  // Get only user's own agents
+      },
+      include: {
+        knowledgeBases: {
+          orderBy: {
+            updatedAt: 'desc'
+          },
+          take: 1,
+          select: {
+            updatedAt: true
+          }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
+      }
+    })
+
+    // Format the agents to match the frontend type
+    const formattedAgents = agents.map(agent => ({
+      id: agent.id,
+      name: agent.name,
+      type: agent.type,
+      status: (agent.status as 'active' | 'inactive') || 'inactive',
+      lastActive: agent.knowledgeBases[0]?.updatedAt.toISOString() || agent.updatedAt.toISOString()
+    }))
+
+    return NextResponse.json(formattedAgents)
+
+  } catch (error) {
+    console.error('API Error:', error)
+    return NextResponse.json({ 
+      success: false,
+      error: "Failed to fetch agents" 
+    }, { status: 500 })
+  }
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(nextAuthConfig)
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   try {
-    const { name, type, status } = await request.json()
+    const session = await getServerSession(nextAuthConfig)
+    if (!session?.user?.email) {
+      return NextResponse.json({ 
+        success: false,
+        error: "Unauthorized" 
+      }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
+
+    if (!user) {
+      return NextResponse.json({ 
+        success: false,
+        error: "User not found" 
+      }, { status: 404 })
+    }
+
+    const { name, type } = await request.json()
 
     if (!name || !type) {
-      return NextResponse.json(
-        { error: "Name and type are required" },
-        { status: 400 }
-      )
+      return NextResponse.json({
+        success: false,
+        error: "Name and type are required"
+      }, { status: 400 })
     }
 
     const agent = await prisma.agent.create({
       data: {
         name,
         type,
-        status,
-        userId: session.user.id
+        status: 'active',
+        userId: user.id
       }
     })
 
-    return NextResponse.json(agent)
+    // Format the response to match frontend type
+    const formattedAgent = {
+      id: agent.id,
+      name: agent.name,
+      type: agent.type,
+      status: 'active' as const,
+      lastActive: agent.updatedAt.toISOString()
+    }
+
+    return NextResponse.json({
+      success: true,
+      agent: formattedAgent
+    })
+
   } catch (error) {
-    console.error("Error creating agent:", error instanceof Error ? error.message : 'Unknown error')
-    return NextResponse.json(
-      { error: "Failed to create agent" },
-      { status: 500 }
-    )
+    console.error('API Error:', error)
+    return NextResponse.json({ 
+      success: false,
+      error: "Failed to create agent" 
+    }, { status: 500 })
   }
 }
-

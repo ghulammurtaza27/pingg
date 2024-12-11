@@ -47,6 +47,7 @@ model User {
   agents             Agent[]
   requests           Request[]
   knowledgeBaseQuestions KnowledgeBaseQuestion[]
+  notifications      Notification[]
 }
 
 model VerificationToken {
@@ -74,18 +75,24 @@ model Agent {
 
 model Request {
   id               String   @id @default(cuid())
-  summary          String
-  considerations   String
-  relevanceScore   Float
-  status           String   @default("pending")
+  summary          String   @db.Text
+  considerations   String   @db.Text
+  relevanceScore   Float    // Score from 0-1 measuring relevance against recipient's knowledge base
+  status           String   @default("pending") // pending, accepted, rejected, completed
   senderAgentId    String
   recipientAgentId String
   userId           String
+  response         String?  @db.Text  // Response from recipient agent
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  
   user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   senderAgent      Agent    @relation("SenderAgent", fields: [senderAgentId], references: [id])
   recipientAgent   Agent    @relation("RecipientAgent", fields: [recipientAgentId], references: [id])
+  notification     Notification?
+
+  @@index([recipientAgentId])
+  @@index([senderAgentId])
 }
 
 model KnowledgeBaseQuestion {
@@ -146,5 +153,19 @@ model KnowledgeBaseEntry {
   answer          String
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  requestId String   @unique
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 

@@ -7,13 +7,15 @@ import { Button } from "@/app/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { AlertCircle, CheckCircle2, Brain } from "lucide-react"
-import { Progress } from "@/app/components/ui/progress"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 import { KnowledgeBaseCreation } from "@/app/components/KnowledgeBaseCreation"
 
-type Agent = {
+interface Agent {
   id: string
   name: string
+  type: string
+  status: 'active' | 'inactive'
+  lastActive: string
 }
 
 export default function KnowledgeBasePage() {
@@ -39,14 +41,22 @@ export default function KnowledgeBasePage() {
   const fetchAgents = async () => {
     try {
       const response = await fetch("/api/agents")
-      if (response.ok) {
-        const data = await response.json()
-        setAgents(data)
-      } else {
+      if (!response.ok) {
         throw new Error("Failed to fetch agents")
       }
-    } catch {
-      setAlert({ message: "Failed to fetch agents", type: 'error' })
+      const data = await response.json()
+      
+      if (Array.isArray(data)) {
+        setAgents(data)
+      } else {
+        throw new Error("Invalid response format")
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error)
+      setAlert({ 
+        message: "Failed to fetch agents", 
+        type: 'error' 
+      })
     }
   }
 
@@ -56,7 +66,6 @@ export default function KnowledgeBasePage() {
       message: "Knowledge base created successfully",
       type: 'success'
     })
-    // Optionally refresh the page or fetch updated data
     router.refresh()
   }
 
@@ -87,7 +96,7 @@ export default function KnowledgeBasePage() {
                 <SelectContent>
                   {agents.map(agent => (
                     <SelectItem key={agent.id} value={agent.id}>
-                      {agent.name}
+                      {agent.name} - Last active: {new Date(agent.lastActive).toLocaleDateString()}
                     </SelectItem>
                   ))}
                 </SelectContent>

@@ -59,18 +59,48 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
 
   const initializeNewConversation = async () => {
     try {
-      // Generate initial suggestions for the first question
-      const suggestions = await generateAnswerSuggestions(INITIAL_QUESTION)
+      // If we have existing conversation, don't start over
+      if (conversation.length > 0) {
+        const lastAnsweredIndex = conversation.findIndex(entry => !entry.answer)
+        
+        if (lastAnsweredIndex === -1) {
+          // All questions are answered, generate new questions from the last answer
+          const lastEntry = conversation[conversation.length - 1]
+          const followUpQuestions = await generateFollowUpQuestions(
+            lastEntry.question,
+            lastEntry.answer
+          )
+          
+          const newQuestions = await Promise.all(
+            followUpQuestions.map(async (question) => {
+              const suggestions = await generateAnswerSuggestions(question)
+              return {
+                id: `${conversation.length}-${Date.now()}`,
+                question,
+                answer: '',
+                suggestions
+              }
+            })
+          )
+          
+          setConversation([...conversation, ...newQuestions])
+          setCurrentIndex(conversation.length)
+        } else {
+          // Continue from the first unanswered question
+          setCurrentIndex(lastAnsweredIndex)
+        }
+      } else {
+        // Initialize with the first question for new conversations
+        const suggestions = await generateAnswerSuggestions(INITIAL_QUESTION)
+        setConversation([{
+          id: '0',
+          question: INITIAL_QUESTION,
+          answer: '',
+          suggestions
+        }])
+        setCurrentIndex(0)
+      }
       
-      // Initialize with the first question
-      setConversation([{
-        id: '0',
-        question: INITIAL_QUESTION,
-        answer: '',
-        suggestions
-      }])
-      
-      setCurrentIndex(0)
       setShowKnowledgeBase(false)
     } catch (error) {
       console.error('Error initializing conversation:', error)
@@ -139,7 +169,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
       try {
         console.log('Client: Fetching knowledge base for agent:', agentId)
         
-        const response = await fetch(`/api/knowledge-base/get?agentId=${agentId}`, {
+        const response = await fetch(`/api/knowledge-base/get-by-agent?agentId=${agentId}`, {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
         })
@@ -300,7 +330,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
   }
 
   const handleContinueAdding = () => {
-    setShowKnowledgeBase(false)
+    initializeNewConversation()
   }
 
   return (
@@ -348,7 +378,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
                         <div className="p-4 bg-muted rounded-lg">
                           <div className="flex items-center justify-between">
                             <p className="font-medium">{conversation[currentIndex]?.question}</p>
-                            {conversation[currentIndex]?.suggestions && conversation[currentIndex].suggestions.length > 0 && (
+                            {conversation[currentIndex]?.suggestions && (
                               <Popover>
                                 <PopoverTrigger asChild>
                                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -359,7 +389,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
                                   <div className="space-y-2">
                                     <h4 className="font-medium text-sm">Suggested Answers</h4>
                                     <ul className="text-sm space-y-1">
-                                      {conversation[currentIndex].suggestions.map((suggestion, i) => (
+                                      {conversation[currentIndex].suggestions?.map((suggestion, i) => (
                                         <li 
                                           key={i}
                                           className="p-2 hover:bg-muted rounded-sm cursor-pointer"

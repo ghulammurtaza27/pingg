@@ -4,6 +4,7 @@ import './globals.css'
 import { Navbar } from './components/Navbar'
 import { ThemeProvider } from "@/app/components/theme-provider"
 import AuthProvider from './context/AuthProvider'
+import { Toaster } from 'react-hot-toast'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -35,6 +36,7 @@ export default function RootLayout({
             </div>
           </AuthProvider>
         </ThemeProvider>
+        <Toaster position="top-right" />
       </body>
     </html>
   )

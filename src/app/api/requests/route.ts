@@ -2,78 +2,62 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
-import { calculateRelevanceScore } from '@/app/utils/relevanceScoring'
-import { Session } from 'next-auth'
 
-type ValidSession = Session & {
-  user: {
-    id: string
-  }
-}
-
-function isValidSession(session: unknown): session is ValidSession {
-  return Boolean(
-    session &&
-    typeof session === 'object' &&
-    'user' in session &&
-    session.user &&
-    typeof session.user === 'object' &&
-    'id' in session.user &&
-    typeof session.user.id === 'string'
-  )
-}
-
-export async function GET(request: Request) {
-  const session = await getServerSession(nextAuthConfig)
-
-  if (!session || !isValidSession(session)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  const { searchParams } = new URL(request.url)
-  const page = parseInt(searchParams.get('page') || '1')
-  const limit = parseInt(searchParams.get('limit') || '5')
-  const query = searchParams.get('query')
-
+export async function GET() {
   try {
-    const skip = (page - 1) * limit
-    const where = {
-      userId: session.user.id,
-      ...(query ? {
-        content: {
-          contains: query,
-          mode: 'insensitive'
-        }
-      } : {})
+    const session = await getServerSession(nextAuthConfig)
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const [requests, total] = await Promise.all([
-      prisma.request.findMany({
-        where,
-        orderBy: {
-          createdAt: 'desc'
-        },
-        skip,
-        take: limit
-      }),
-      prisma.request.count({ where })
-    ])
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    })
 
-    return NextResponse.json({
-      requests,
-      pagination: {
-        total,
-        pages: Math.ceil(total / limit),
-        page,
-        limit
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    // Get user's agents
+    const userAgents = await prisma.agent.findMany({
+      where: { userId: user.id },
+      select: { id: true }
+    })
+
+    const agentIds = userAgents.map(agent => agent.id)
+
+    // Fetch requests where user's agents are either sender or recipient
+    const requests = await prisma.request.findMany({
+      where: {
+        OR: [
+          { senderAgentId: { in: agentIds } },
+          { recipientAgentId: { in: agentIds } }
+        ]
+      },
+      include: {
+        senderAgent: {
+          select: { name: true }
+        },
+        recipientAgent: {
+          select: { name: true }
+        }
+      },
+      orderBy: {
+        createdAt: 'desc'
       }
     })
+
+    return NextResponse.json({ 
+      success: true, 
+      requests 
+    })
+
   } catch (error) {
-    console.error('Error fetching requests:', error)
-    return NextResponse.json(
-      { error: "Failed to fetch requests" },
-      { status: 500 }
-    )
+    console.error('API Error:', error)
+    return NextResponse.json({ 
+      success: false, 
+      error: "Failed to fetch requests" 
+    }, { status: 500 })
   }
 }
 

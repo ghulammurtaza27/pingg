@@ -23,8 +23,11 @@ interface KnowledgeBaseDisplayProps {
 
 interface KnowledgeBase {
   id: string;
+  agentId: string;
   coalesced: boolean;
-  coalescedSummary?: {
+  coalescedSummary: {
+    id: string;
+    knowledgeBaseId: string;
     summary: string;
     capabilities: string[];
     useCases: string[];
@@ -53,12 +56,17 @@ export function KnowledgeBaseDisplay({
       if (!knowledgeBaseId) return
 
       try {
+        console.log('Fetching knowledge base:', knowledgeBaseId)
         const response = await fetch(`/api/knowledge-base/get?id=${knowledgeBaseId}`)
         const data = await response.json()
+        console.log('Fetched knowledge base data:', data)
         
         if (data.success && data.data?.knowledgeBase) {
-          setKnowledgeBase(data.data.knowledgeBase)
-          setShowEntries(!data.data.knowledgeBase.coalescedSummary)
+          const kb = data.data.knowledgeBase
+          console.log('Setting knowledge base with summary:', kb.coalescedSummary)
+          setKnowledgeBase(kb)
+          // Set showEntries to false if there's a summary
+          setShowEntries(kb.coalescedSummary === null)
         }
       } catch (error) {
         console.error('Error fetching knowledge base:', error)
@@ -126,6 +134,15 @@ export function KnowledgeBaseDisplay({
     }
   }
 
+  // Transform coalescedSummary to match CoalescedSummaryData interface
+  const summaryData = knowledgeBase?.coalescedSummary ? {
+    summary: knowledgeBase.coalescedSummary.summary,
+    capabilities: knowledgeBase.coalescedSummary.capabilities,
+    useCases: knowledgeBase.coalescedSummary.useCases,
+    limitations: knowledgeBase.coalescedSummary.limitations,
+    additionalContext: knowledgeBase.coalescedSummary.additionalContext
+  } : null
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -138,6 +155,13 @@ export function KnowledgeBaseDisplay({
                 variant="outline"
               >
                 {showEntries ? 'View Summary' : 'View Entries'}
+              </Button>
+              <Button
+                onClick={handleCoalesce}
+                disabled={isCoalescing}
+                variant="outline"
+              >
+                {isCoalescing ? 'Regenerating...' : 'Regenerate Summary'}
               </Button>
               <Button onClick={onContinue}>Continue Adding</Button>
             </>
@@ -164,12 +188,24 @@ export function KnowledgeBaseDisplay({
       )}
 
       {!showEntries ? (
-        <CoalescedSummary 
-          data={knowledgeBase?.coalescedData   || knowledgeBase?.coalescedSummary || null}
-          onGenerateSummary={handleCoalesce}
-        />
+        <>
+          <CoalescedSummary 
+            data={summaryData}
+            onGenerateSummary={handleCoalesce}
+          />
+          {console.log('Rendering summary with data:', summaryData)}
+        </>
       ) : (
         <div className="space-y-4">
+          {summaryData && (
+            <Button
+              onClick={() => setShowEntries(false)}
+              variant="secondary"
+              className="w-full mb-4"
+            >
+              View Generated Summary
+            </Button>
+          )}
           {editableEntries.map((entry, index) => (
             <Card key={entry.id}>
               <CardHeader>

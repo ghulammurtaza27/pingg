@@ -18,7 +18,16 @@ interface CoalescedSummaryData {
     data,
     onGenerateSummary
   }: CoalescedSummaryProps) {
-    if (!data) {
+    console.log('Received summary data:', data) // Debug log
+  
+    // Check if we have valid data with required fields
+    const hasValidData = data && 
+      typeof data.summary === 'string' && 
+      Array.isArray(data.capabilities) &&
+      Array.isArray(data.useCases) &&
+      Array.isArray(data.limitations)
+  
+    if (!hasValidData) {
       return (
         <Card>
           <CardHeader>
@@ -56,7 +65,7 @@ interface CoalescedSummaryData {
           <div>
             <h3 className="text-lg font-semibold mb-2">Capabilities</h3>
             <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-              {data.capabilities?.map((cap, i) => (
+              {data.capabilities.map((cap, i) => (
                 <li key={i} className="leading-relaxed">{cap}</li>
               ))}
             </ul>
@@ -65,13 +74,13 @@ interface CoalescedSummaryData {
           <div>
             <h3 className="text-lg font-semibold mb-2">Use Cases</h3>
             <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
-              {data.useCases?.map((use, i) => (
+              {data.useCases.map((use, i) => (
                 <li key={i} className="leading-relaxed">{use}</li>
               ))}
             </ul>
           </div>
   
-          {data.limitations?.length > 0 && (
+          {data.limitations.length > 0 && (
             <div>
               <h3 className="text-lg font-semibold mb-2">Limitations</h3>
               <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">
