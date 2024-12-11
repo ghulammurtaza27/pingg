@@ -63,18 +63,18 @@ export function RequestsOverview({ detailed = false }: { detailed?: boolean }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 bg-[#0c0c0c] rounded-lg">
       {requests.slice(0, detailed ? undefined : 5).map((request) => (
-        <Card key={request.id} className="p-4">
+        <Card key={request.id} className="p-4 bg-[#1c2432] border-0">
           <div className="flex items-start justify-between">
             <div className="space-y-1">
-              <p className="font-medium">{request.summary}</p>
+              <p className="font-medium text-gray-200">{request.summary}</p>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>{request.senderAgent.name} → {request.recipientAgent.name}</span>
-                <Badge variant={request.status === 'pending' ? 'secondary' : 'success'}>
+                <Badge variant="secondary" className="bg-[#2a3441] text-yellow-500">
                   {request.status}
                 </Badge>
-                <Badge variant="outline">
+                <Badge variant="outline" className="border-gray-700">
                   {(request.relevanceScore * 100).toFixed(0)}% relevant
                 </Badge>
               </div>
@@ -83,6 +83,7 @@ export function RequestsOverview({ detailed = false }: { detailed?: boolean }) {
               variant="ghost"
               size="sm"
               onClick={() => router.push(`/requests/${request.id}`)}
+              className="hover:bg-[#2a3441]"
             >
               View
             </Button>
@@ -93,7 +94,7 @@ export function RequestsOverview({ detailed = false }: { detailed?: boolean }) {
       {!detailed && requests.length > 5 && (
         <Button
           variant="outline"
-          className="w-full"
+          className="w-full border-gray-700 hover:bg-[#2a3441]"
           onClick={() => router.push("/requests")}
         >
           View All Requests

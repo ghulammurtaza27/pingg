@@ -3,6 +3,10 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
+import { Loader2, AlertCircle } from "lucide-react"
+import { Alert, AlertDescription } from "@/app/components/ui/alert"
+import { Button } from "@/app/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 
 interface Agent {
   id: string
@@ -104,30 +108,32 @@ export default function SendRequest() {
 
   if (fetchingAgents) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary border-t-transparent"></div>
+      <div className="flex justify-center">
+        <Loader2 className="h-6 w-6 animate-spin" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[200px] p-4">
-        <div className="text-destructive text-center mb-4">{error}</div>
-        <button 
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertDescription>{error}</AlertDescription>
+        <Button 
           onClick={() => window.location.reload()} 
-          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+          variant="outline"
+          className="mt-4 w-full border-gray-700 hover:bg-[#2a3441]"
         >
           Try Again
-        </button>
-      </div>
+        </Button>
+      </Alert>
     )
   }
 
   if (agents.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[200px]">
-        <p className="text-muted-foreground text-center">
+      <div className="flex items-center justify-center">
+        <p className="text-muted-foreground">
           No agents available to send requests to
         </p>
       </div>
@@ -135,30 +141,38 @@ export default function SendRequest() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-8 max-w-2xl mx-auto p-6">
+    <form onSubmit={handleSubmit} className="space-y-8 bg-[#0c0c0c] rounded-lg p-6">
       <div className="space-y-2">
-        <label htmlFor="recipientAgentId" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+        <label className="text-sm font-medium text-gray-200">
           Select Agent
         </label>
-        <select
-          id="recipientAgentId"
-          name="recipientAgentId"
+        <Select
           value={formData.recipientAgentId}
-          onChange={handleChange}
-          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          required
+          onValueChange={(value) => {
+            handleChange({
+              target: { name: 'recipientAgentId', value }
+            } as any)
+          }}
         >
-          <option value="">Choose an agent...</option>
-          {agents.map(agent => (
-            <option key={agent.id} value={agent.id}>
-              {agent.name} - Last active: {new Date(agent.lastActive).toLocaleDateString()}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-full bg-[#0c0c0c] border border-gray-700 text-gray-200">
+            <SelectValue placeholder="Choose an agent..." />
+          </SelectTrigger>
+          <SelectContent className="bg-[#1c2432] border border-gray-700">
+            {agents.map(agent => (
+              <SelectItem 
+                key={agent.id} 
+                value={agent.id}
+                className="text-gray-200 focus:bg-[#2a3441] focus:text-gray-200"
+              >
+                {agent.name} - Last active: {new Date(agent.lastActive).toLocaleDateString()}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="summary" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+        <label htmlFor="summary" className="text-sm font-medium text-gray-200">
           Summary
         </label>
         <textarea
@@ -166,14 +180,14 @@ export default function SendRequest() {
           name="summary"
           value={formData.summary}
           onChange={handleChange}
-          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[80px] w-full rounded-lg border border-gray-700 bg-[#0c0c0c] px-3 py-2 text-base text-gray-200 ring-0 placeholder:text-gray-200 focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Brief summary of your request"
           required
         />
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="considerations" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+        <label htmlFor="considerations" className="text-sm font-medium text-gray-200">
           Considerations
         </label>
         <textarea
@@ -181,26 +195,26 @@ export default function SendRequest() {
           name="considerations"
           value={formData.considerations}
           onChange={handleChange}
-          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex min-h-[80px] w-full rounded-lg border border-gray-700 bg-[#0c0c0c] px-3 py-2 text-base text-gray-200 ring-0 placeholder:text-gray-200 focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50"
           placeholder="Any specific considerations or requirements"
           required
         />
       </div>
 
-      <button
+      <Button
         type="submit"
         disabled={loading}
-        className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 w-full"
+        className="w-full bg-[#2a3441] hover:bg-[#1c2432] text-gray-200"
       >
         {loading ? (
-          <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2"></div>
+          <div className="flex items-center justify-center">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
             Sending...
           </div>
         ) : (
           'Send Request'
         )}
-      </button>
+      </Button>
     </form>
   )
 } 

@@ -197,15 +197,7 @@ export function KnowledgeBaseDisplay({
         </>
       ) : (
         <div className="space-y-4">
-          {summaryData && (
-            <Button
-              onClick={() => setShowEntries(false)}
-              variant="secondary"
-              className="w-full mb-4"
-            >
-              View Generated Summary
-            </Button>
-          )}
+         
           {editableEntries.map((entry, index) => (
             <Card key={entry.id}>
               <CardHeader>

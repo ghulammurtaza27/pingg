@@ -3,7 +3,7 @@ import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { NextResponse } from "next/server"
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getServerSession(nextAuthConfig)
     if (!session?.user?.email) {
@@ -13,15 +13,21 @@ export async function GET() {
       )
     }
 
-    console.log("Fetching for user:", session.user.email)
+    // Get optional agentId from query params
+    const { searchParams } = new URL(request.url)
+    const agentId = searchParams.get('agentId')
+
+    console.log("Fetching for user:", session.user.email, "agentId:", agentId)
 
     const knowledgeBases = await prisma.knowledgeBase.findMany({
       where: {
         agent: {
-          userId: session.user.id
+          userId: session.user.id,
+          ...(agentId ? { id: agentId } : {})
         }
       },
       include: {
+        agent: true,
         entries: true,
         coalescedSummary: true
       },
@@ -45,6 +51,8 @@ export async function GET() {
     // Structure the response to match the component's expected format
     const formattedKnowledgeBase = {
       id: knowledgeBase.id,
+      agentId: knowledgeBase.agent.id,
+      agentName: knowledgeBase.agent.name,
       industry: knowledgeBase.industry,
       useCase: knowledgeBase.useCase,
       mainGoals: knowledgeBase.mainGoals || [],
