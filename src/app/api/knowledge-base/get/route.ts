@@ -24,7 +24,7 @@ export async function GET(request: Request) {
       }
     })
 
-    console.log('API: Found knowledge base with summary:', knowledgeBase?.coalescedSummary)
+ 
 
     if (!knowledgeBase) {
       return new Response(

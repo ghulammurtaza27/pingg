@@ -82,13 +82,6 @@ export async function POST(request: Request) {
       }
     })
 
-    // Add logging
-    console.log('Triggering Pusher event:', {
-      id: newRequest.id,
-      title: `New Request from ${newRequest.senderAgent.name}`,
-      message: newRequest.summary,
-      url: `/requests/${newRequest.id}`
-    })
 
     // Trigger Pusher event
     await pusherServer.trigger('requests', 'new-request', {

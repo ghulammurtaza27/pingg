@@ -18,7 +18,7 @@ interface CoalescedSummaryData {
     data,
     onGenerateSummary
   }: CoalescedSummaryProps) {
-    console.log('Received summary data:', data) // Debug log
+
   
     // Check if we have valid data with required fields
     const hasValidData = data && 

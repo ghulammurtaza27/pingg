@@ -47,16 +47,16 @@ export function KnowledgeBaseOverview({ detailed = false }: { detailed?: boolean
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null)
 
   useEffect(() => {
-    console.log("Initial mount, fetching agents...")
+
     fetchAgents()
   }, [])
 
   useEffect(() => {
-    console.log("selectedAgentId changed:", selectedAgentId)
+
     if (selectedAgentId) {
       fetchKnowledgeBase()
     } else {
-      console.log("No agent selected, setting loading false")
+
       setLoading(false)
     }
   }, [selectedAgentId])
@@ -65,21 +65,21 @@ export function KnowledgeBaseOverview({ detailed = false }: { detailed?: boolean
     try {
       const response = await fetch("/api/agents")
       const data = await response.json()
-      console.log("Agents response:", data)
+   
 
       if (Array.isArray(data)) {
         const formattedAgents = data.map(agent => ({
           id: agent.id,
           name: agent.name
         }))
-        console.log("Setting agents:", formattedAgents)
+  
         setAgents(formattedAgents)
         
         if (data.length > 0) {
-          console.log("Setting first agent:", data[0].id)
+ 
           setSelectedAgentId(data[0].id)
         } else {
-          console.log("No agents found, setting loading false")
+
           setLoading(false)
         }
       } else {
@@ -95,7 +95,7 @@ export function KnowledgeBaseOverview({ detailed = false }: { detailed?: boolean
   }
 
   async function fetchKnowledgeBase() {
-    console.log("Fetching knowledge base for agent:", selectedAgentId)
+
     try {
       setLoading(true)
       const url = selectedAgentId 

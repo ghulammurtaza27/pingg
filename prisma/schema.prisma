@@ -37,10 +37,11 @@ model Session {
 model User {
   id                 String    @id @default(cuid())
   name               String?
-  email              String?   @unique
+  email              String    @unique
   emailVerified      DateTime?
   image              String?
-  password           String?
+  password           String
+  preferences        UserPreferences?
   organizationalGoals String?
   accounts           Account[]
   sessions           Session[]
@@ -175,6 +176,18 @@ model Notification {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@index([userId])
+}
+
+model UserPreferences {
+  id                  String  @id @default(cuid())
+  userId              String  @unique
+  user                User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailNotifications  Boolean @default(true)
+  pushNotifications   Boolean @default(true)
+  darkMode           Boolean @default(true)
+  language           String  @default("en")
+  
   @@index([userId])
 }
 

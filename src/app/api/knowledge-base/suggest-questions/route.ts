@@ -5,7 +5,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Initialize the Google AI client with debug logging
 const apiKey = process.env.GOOGLE_AI_API_KEY
-console.log('API Key exists:', !!apiKey) // Debug log (will show true/false, not the actual key)
+
 
 const genAI = new GoogleGenerativeAI(apiKey || '')
 
@@ -16,10 +16,10 @@ function cleanMarkdownJSON(text: string): string {
 }
 
 export async function POST(request: Request) {
-  console.log('Starting POST request to suggest-questions') // Debug log
+
   
   const session = await getServerSession(nextAuthConfig)
-  console.log('Session exists:', !!session) // Debug log
+  
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -27,13 +27,13 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json()
-    console.log('Request body:', body) // Debug log
+
     
     const { industry, useCase, mainGoals } = body
 
     // Validate input
     if (!industry || !useCase) {
-      console.log('Missing required fields') // Debug log
+     
       return NextResponse.json(
         { error: "Industry and use case are required" },
         { status: 400 }
@@ -51,25 +51,25 @@ export async function POST(request: Request) {
     
     Make the questions specific and relevant to the industry and use case.`
 
-    console.log('Sending prompt to Gemini:', prompt) // Debug log
+
 
     // Generate content
     const model = genAI.getGenerativeModel({ model: "gemini-pro" })
     const result = await model.generateContent(prompt)
     const response = await result.response.text()
     
-    console.log('Gemini raw response:', response) // Debug log
+
 
     try {
       // Clean the response before parsing
       const cleanedResponse = cleanMarkdownJSON(response)
-      console.log('Cleaned response:', cleanedResponse)
+
       
       const parsedResponse = JSON.parse(cleanedResponse)
-      console.log('Parsed response:', parsedResponse)
+ 
       
       if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
-        console.log('Invalid response format from Gemini') // Debug log
+       
         throw new Error('Invalid response format')
       }
       

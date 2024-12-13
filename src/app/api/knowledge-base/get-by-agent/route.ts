@@ -22,7 +22,6 @@ export async function GET(request: Request) {
       orderBy: { createdAt: 'desc' }
     })
 
-    console.log('API: Found knowledge base for agent:', knowledgeBase)
 
     return new Response(
       JSON.stringify({

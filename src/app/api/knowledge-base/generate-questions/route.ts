@@ -34,7 +34,6 @@ Do not include any markdown formatting or code block syntax.`
     const result = await model.generateContent(prompt)
     const response = await result.response.text()
 
-    console.log('Gemini raw response:', response)
 
     try {
       const cleanedResponse = cleanMarkdownJSON(response)

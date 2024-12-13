@@ -132,7 +132,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
 
   const generateAnswerSuggestions = async (question: string) => {
     try {
-      console.log('Generating suggestions for:', question)
+  
       const response = await fetch('/api/knowledge-base/generate-suggestions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -146,7 +146,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
       }
 
       const data = await response.json()
-      console.log('Received suggestions:', data.suggestions)
+
       return data.suggestions || []
     } catch (error) {
       console.error('Error generating suggestions:', error)
@@ -157,7 +157,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
   useEffect(() => {
     const fetchExistingKnowledgeBase = async () => {
       if (!agentId) {
-        console.log('Client: No agent ID provided')
+      
         setError('Agent ID is required')
         setIsInitialLoading(false)
         return
@@ -167,7 +167,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
       setError(null)
 
       try {
-        console.log('Client: Fetching knowledge base for agent:', agentId)
+     
         
         const response = await fetch(`/api/knowledge-base/get-by-agent?agentId=${agentId}`, {
           method: 'GET',
@@ -175,7 +175,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
         })
 
         const data = await response.json()
-        console.log('Client: Received data:', data)
+ 
 
         if (!response.ok) {
           throw new Error(data.error?.message || `HTTP error! status: ${response.status}`)

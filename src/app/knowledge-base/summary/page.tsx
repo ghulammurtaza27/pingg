@@ -15,7 +15,7 @@ export default function KnowledgeBaseSummaryPage() {
   const [viewMode, setViewMode] = useState<'demo' | 'empty' | 'real'>('demo')
 
   const handleGenerateSummary = () => {
-    console.log('Generating summary...')
+   
     setViewMode('demo')
   }
 

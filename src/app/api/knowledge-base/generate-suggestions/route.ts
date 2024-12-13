@@ -32,7 +32,7 @@ export async function POST(request: Request) {
 
   try {
     const { question } = await request.json()
-    console.log('Generating suggestions for question:', question)
+
 
     if (!question) {
       return NextResponse.json(
@@ -57,11 +57,11 @@ export async function POST(request: Request) {
     }
     
     const response = result.response.text()
-    console.log('Raw response:', response)
+
 
     try {
       const cleanedResponse = cleanMarkdownJSON(response)
-      console.log('Cleaned response:', cleanedResponse)
+     
       
       let parsedResponse
       try {
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
         parsedResponse = fallbackJson
       }
       
-      console.log('Parsed response:', parsedResponse)
+  
       
       if (!parsedResponse.suggestions || !Array.isArray(parsedResponse.suggestions)) {
         throw new Error('Invalid response format')

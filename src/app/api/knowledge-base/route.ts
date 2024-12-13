@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const agentId = searchParams.get('agentId')
 
-    console.log("Fetching for user:", session.user.email, "agentId:", agentId)
+
 
     const knowledgeBases = await prisma.knowledgeBase.findMany({
       where: {
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
       take: 1
     })
 
-    console.log("Found knowledge bases:", JSON.stringify(knowledgeBases, null, 2))
+  
 
     if (!knowledgeBases.length) {
       return NextResponse.json(
@@ -72,11 +72,7 @@ export async function GET(request: Request) {
       } : null
     }
 
-    console.log("Formatted response:", JSON.stringify({
-      success: true,
-      data: { knowledgeBase: formattedKnowledgeBase },
-      error: null
-    }, null, 2))
+ 
 
     return NextResponse.json({
       success: true,

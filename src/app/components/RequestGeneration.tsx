@@ -58,7 +58,7 @@ export function RequestGeneration() {
       })
       if (!response.ok) throw new Error('Failed to generate request')
       const newRequest = await response.json()
-      console.log('New request generated:', newRequest)
+   
       // Reset form
       setProductInfo('')
       setTargetCriteria('')

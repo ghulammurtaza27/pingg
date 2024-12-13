@@ -11,7 +11,7 @@ export function Notifications() {
   const router = useRouter()
 
   useEffect(() => {
-    console.log('Setting up Pusher subscription...')
+
     
     // Request notification permission on mount
     requestNotificationPermission().then(granted => {
@@ -19,7 +19,7 @@ export function Notifications() {
     })
 
     const channel = pusherClient.subscribe('requests')
-    console.log('Subscribed to Pusher channel: requests')
+
 
     channel.bind('new-request', (data: { 
       id: string
@@ -27,7 +27,7 @@ export function Notifications() {
       message: string
       url: string
     }) => {
-      console.log('Received new request notification:', data)
+ 
 
       // Show toast notification
       toast(
@@ -63,11 +63,11 @@ export function Notifications() {
       current: string,
       previous: string
     }) => {
-      console.log('Pusher connection state changed:', states)
+   
     })
 
     return () => {
-      console.log('Cleaning up Pusher subscription...')
+    
       pusherClient.unsubscribe('requests')
     }
   }, [router])

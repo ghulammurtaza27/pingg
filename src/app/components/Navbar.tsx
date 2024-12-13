@@ -86,9 +86,26 @@ export function Navbar() {
     }
   }
 
-  const handleSignOut = async () => {
-    await signOut({ redirect: false })
-    router.push("/login")
+  const handleSignOut = async (e: any) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    try {
+      const data = await signOut({
+        redirect: false,
+        callbackUrl: "/login",
+      })
+      
+      // Clear any local storage or state if needed
+      localStorage.clear()
+      
+      // Manual redirect
+      window.location.href = '/login'
+    } catch (error) {
+      console.error('Sign out error:', error)
+      // Fallback redirect
+      window.location.href = '/login'
+    }
   }
 
   return (
@@ -182,7 +199,13 @@ export function Navbar() {
                     <DropdownMenuItem asChild>
                       <Link href="/profile">Profile</Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={handleSignOut}>
+                    <DropdownMenuItem 
+                      className="cursor-pointer text-red-500 focus:text-red-500"
+                      onSelect={(e) => {
+                        e.preventDefault()
+                        handleSignOut(e)
+                      }}
+                    >
                       Sign out
                     </DropdownMenuItem>
                   </DropdownMenuContent>

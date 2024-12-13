@@ -56,14 +56,14 @@ export function KnowledgeBaseDisplay({
       if (!knowledgeBaseId) return
 
       try {
-        console.log('Fetching knowledge base:', knowledgeBaseId)
+
         const response = await fetch(`/api/knowledge-base/get?id=${knowledgeBaseId}`)
         const data = await response.json()
-        console.log('Fetched knowledge base data:', data)
+       
         
         if (data.success && data.data?.knowledgeBase) {
           const kb = data.data.knowledgeBase
-          console.log('Setting knowledge base with summary:', kb.coalescedSummary)
+
           setKnowledgeBase(kb)
           // Set showEntries to false if there's a summary
           setShowEntries(kb.coalescedSummary === null)
@@ -193,7 +193,7 @@ export function KnowledgeBaseDisplay({
             data={summaryData}
             onGenerateSummary={handleCoalesce}
           />
-          {console.log('Rendering summary with data:', summaryData)}
+
         </>
       ) : (
         <div className="space-y-4">

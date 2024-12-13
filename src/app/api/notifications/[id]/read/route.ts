@@ -4,9 +4,12 @@ import prisma from "@/lib/prisma"
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const params = await context.params
+    const notificationId = params.id
+
     const session = await getServerSession(nextAuthConfig)
     if (!session?.user?.email) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
@@ -24,7 +27,7 @@ export async function POST(
     // Verify the notification belongs to the user
     const notification = await prisma.notification.findFirst({
       where: {
-        id: params.id,
+        id: notificationId,
         userId: user.id
       }
     })
@@ -35,7 +38,7 @@ export async function POST(
 
     // Mark as read
     await prisma.notification.update({
-      where: { id: params.id },
+      where: { id: notificationId },
       data: { read: true }
     })
 
