@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
+import { pusherServer } from '@/lib/pusher'
 
 export async function GET() {
   try {
@@ -62,36 +63,45 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(nextAuthConfig)
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
   try {
-    const { content } = await request.json()
-
-    if (!content) {
-      return NextResponse.json(
-        { error: "Content is required" },
-        { status: 400 }
-      )
+    const session = await getServerSession(nextAuthConfig)
+    if (!session?.user) {
+      return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    const data = await request.json()
+    
     const newRequest = await prisma.request.create({
       data: {
-        content,
-        userId: session.user.id
+        ...data,
+        status: 'PENDING'
+      },
+      include: {
+        senderAgent: true,
+        recipientAgent: true
       }
     })
 
-    return NextResponse.json(newRequest)
+    // Add logging
+    console.log('Triggering Pusher event:', {
+      id: newRequest.id,
+      title: `New Request from ${newRequest.senderAgent.name}`,
+      message: newRequest.summary,
+      url: `/requests/${newRequest.id}`
+    })
+
+    // Trigger Pusher event
+    await pusherServer.trigger('requests', 'new-request', {
+      id: newRequest.id,
+      title: `New Request from ${newRequest.senderAgent.name}`,
+      message: newRequest.summary,
+      url: `/requests/${newRequest.id}`
+    })
+
+    return Response.json({ request: newRequest })
   } catch (error) {
-    console.error("Error creating request:", error)
-    return NextResponse.json(
-      { error: "Failed to create request" },
-      { status: 500 }
-    )
+    console.error('Error in POST /api/requests:', error)
+    return Response.json({ error: 'Failed to create request' }, { status: 500 })
   }
 }
 

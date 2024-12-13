@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth/next"
 import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { calculateRelevanceScore } from '@/lib/relevance'
+import { pusherServer } from '@/lib/pusher'
 
 export async function POST(request: Request) {
   const headers = {
@@ -136,6 +137,10 @@ export async function POST(request: Request) {
           senderAgentId: senderAgent.id,
           recipientAgentId,
           userId: user.id,
+        },
+        include: {
+          senderAgent: true,
+          recipientAgent: true
         }
       })
 
@@ -145,6 +150,14 @@ export async function POST(request: Request) {
           userId: user.id,
           message: `New ${relevanceScore >= 0.8 ? 'highly' : 'moderately'} relevant request (${(relevanceScore * 100).toFixed(0)}%) from ${senderAgent.name}`,
         }
+      })
+
+      // Trigger Pusher notification after creating the request
+      await pusherServer.trigger('requests', 'new-request', {
+        id: request.id,
+        title: `New Request from ${request.senderAgent.name}`,
+        message: request.summary,
+        url: `/requests/${request.id}`
       })
 
       return request

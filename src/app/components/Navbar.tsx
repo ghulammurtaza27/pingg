@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
@@ -14,27 +14,76 @@ import {
 } from "@/app/components/ui/dropdown-menu"
 import { Badge } from "@/app/components/ui/badge"
 import { ThemeToggle } from "@/app/components/theme-toggle"
+import { pusherClient } from "@/lib/pusher"
 
 type Notification = {
-  id: number
+  id: string
   message: string
   read: boolean
+  url?: string
+  createdAt: Date
 }
 
 export function Navbar() {
   const { data: session } = useSession()
   const router = useRouter()
-  const [notifications, setNotifications] = useState<Notification[]>([
-    { id: 1, message: "New high-relevance request received", read: false },
-    { id: 2, message: "Agent 'Sales-1' has been activated", read: false },
-  ])
+  const [notifications, setNotifications] = useState<Notification[]>([])
+
+  useEffect(() => {
+    if (!session) return
+
+    // Load existing notifications from API
+    fetch('/api/notifications')
+      .then(res => res.json())
+      .then(data => {
+        setNotifications(data.notifications)
+      })
+
+    // Subscribe to Pusher channel
+    const channel = pusherClient.subscribe('requests')
+
+    channel.bind('new-request', (data: { 
+      id: string
+      title: string
+      message: string
+      url: string
+    }) => {
+      setNotifications(prev => [{
+        id: data.id,
+        message: data.title,
+        read: false,
+        url: data.url,
+        createdAt: new Date()
+      }, ...prev])
+    })
+
+    return () => {
+      pusherClient.unsubscribe('requests')
+    }
+  }, [session])
 
   const unreadCount = notifications.filter(n => !n.read).length
 
-  const markAsRead = (id: number) => {
-    setNotifications(notifications.map(n => 
-      n.id === id ? { ...n, read: true } : n
-    ))
+  const markAsRead = async (id: string, navigate: boolean = false) => {
+    try {
+      await fetch(`/api/notifications/${id}/read`, {
+        method: 'POST'
+      })
+
+      setNotifications(notifications.map(n => 
+        n.id === id ? { ...n, read: true } : n
+      ))
+
+      // Only navigate if explicitly requested
+      if (navigate) {
+        const notification = notifications.find(n => n.id === id)
+        if (notification?.url) {
+          router.push(notification.url)
+        }
+      }
+    } catch (error) {
+      console.error('Error marking notification as read:', error)
+    }
   }
 
   const handleSignOut = async () => {
@@ -76,15 +125,50 @@ export function Navbar() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-80">
                     {notifications.map(notification => (
-                      <DropdownMenuItem key={notification.id} onSelect={() => markAsRead(notification.id)}>
-                        <div className={`flex items-center space-x-2 ${notification.read ? "'opacity-50'" : "''"}`}>
-                          <div className="flex-1">{notification.message}</div>
-                          {!notification.read && <Badge>New</Badge>}
+                      <DropdownMenuItem 
+                        key={notification.id} 
+                        className={`
+                          cursor-pointer group flex items-center
+                          ${notification.read ? "opacity-50" : ""}
+                        `}
+                        onClick={() => {
+                          if (notification.url) {
+                            markAsRead(notification.id, true)
+                          }
+                        }}
+                      >
+                        <div className="flex-1 pr-2">
+                          <p className="font-medium">{notification.message}</p>
+                          <p className="text-xs text-zinc-500">
+                            {new Date(notification.createdAt).toLocaleString()}
+                          </p>
+                          {!notification.read && (
+                            <div className="relative z-50">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                className="h-7 text-xs mt-1 transition-colors duration-200 ease-in-out
+                                           hover:bg-zinc-200 hover:text-zinc-900
+                                           dark:hover:bg-zinc-800 dark:hover:text-zinc-50
+                                           relative z-50"
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  markAsRead(notification.id, false)
+                                }}
+                              >
+                                Mark as Read
+                              </Button>
+                            </div>
+                          )}
                         </div>
+                        {!notification.read && (
+                          <Badge className="shrink-0">New</Badge>
+                        )}
                       </DropdownMenuItem>
                     ))}
                     {notifications.length === 0 && (
-                      <DropdownMenuItem disabled>No new notifications</DropdownMenuItem>
+                      <DropdownMenuItem disabled>No notifications</DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>

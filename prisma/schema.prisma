@@ -90,6 +90,7 @@ model Request {
   senderAgent      Agent    @relation("SenderAgent", fields: [senderAgentId], references: [id])
   recipientAgent   Agent    @relation("RecipientAgent", fields: [recipientAgentId], references: [id])
   notification     Notification?
+  analysis         RequestAnalysis?
 
   @@index([recipientAgentId])
   @@index([senderAgentId])
@@ -153,6 +154,14 @@ model KnowledgeBaseEntry {
   answer          String
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+}
+
+model RequestAnalysis {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  generatedAt DateTime @default(now())
+  request     Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  requestId   String   @unique
 }
 
 model Notification {
