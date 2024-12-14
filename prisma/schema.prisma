@@ -49,6 +49,9 @@ model User {
   requests           Request[]
   knowledgeBaseQuestions KnowledgeBaseQuestion[]
   notifications      Notification[]
+  gmailIntegrated  Boolean?  @default(false)
+  gmailAccessToken String?
+  gmailRefreshToken String?
 }
 
 model VerificationToken {

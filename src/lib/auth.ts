@@ -16,6 +16,14 @@ export const nextAuthConfig: NextAuthOptions = {
           access_type: "offline",
           response_type: "code"
         }
+      },
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture
+        }
       }
     }),
     CredentialsProvider({
@@ -25,34 +33,43 @@ export const nextAuthConfig: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null
-        }
-
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
-          },
-          include: {
-            preferences: true
+        try {
+          if (!credentials?.email || !credentials?.password) {
+            throw new Error("Email and password are required")
           }
-        })
-
-        if (!user) {
-          return null
-        }
-
-        const isPasswordValid = await compare(credentials.password, user.password)
-
-        if (!isPasswordValid) {
-          return null
-        }
-
-        return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          preferences: user.preferences
+      
+          const user = await prisma.user.findUnique({
+            where: { email: credentials.email },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+              password: true,
+              preferences: true
+            }
+          })
+      
+          if (!user) {
+            throw new Error("User not found")
+          }
+      
+          const isPasswordValid = await compare(credentials.password, user.password)
+      
+          if (!isPasswordValid) {
+            throw new Error("Invalid password")
+          }
+      
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            image: user.image,
+            preferences: user.preferences
+          }
+        } catch (error) {
+          console.error("Authorization error:", error);
+          return null;
         }
       }
     })
@@ -61,33 +78,38 @@ export const nextAuthConfig: NextAuthOptions = {
     async signIn({ account, profile }) {
       if (account?.provider === "google") {
         try {
-          const user = await prisma.user.findUnique({
-            where: { email: profile?.email }
-          });
-
-          if (!user) {
-            await prisma.user.create({
-              data: {
-                email: profile?.email!,
-                name: profile?.name!,
-                gmailIntegrated: true,
-                gmailAccessToken: account.access_token,
-                gmailRefreshToken: account.refresh_token,
-              }
-            });
-          } else {
-            await prisma.user.update({
-              where: { email: profile?.email },
-              data: {
-                gmailIntegrated: true,
-                gmailAccessToken: account.access_token,
-                gmailRefreshToken: account.refresh_token,
-              }
-            });
+          if (!profile?.email) {
+            console.error("No email found in Google profile");
+            return false;
           }
+    
+          const userData = {
+            email: profile.email,
+            name: profile.name || profile.given_name || '',
+            image: profile.picture || null,
+            gmailIntegrated: true,
+            gmailAccessToken: account.access_token || '',
+            gmailRefreshToken: account.refresh_token || '',
+          }
+    
+          if (!userData.email) {
+            console.error("Invalid user data", userData);
+            return false;
+          }
+    
+          await prisma.user.upsert({
+            where: { email: userData.email },
+            update: userData,
+            create: {
+              ...userData,
+              password: '',
+              emailVerified: new Date()
+            }
+          });
+    
           return true;
         } catch (error) {
-          console.error("Error during Google sign in:", error);
+          console.error("Detailed Google sign-in error:", error);
           return false;
         }
       }
@@ -95,24 +117,40 @@ export const nextAuthConfig: NextAuthOptions = {
     },
     async jwt({ token, user, trigger, session }) {
       if (trigger === "update" && session) {
-        return { ...token, ...session }
+        return { ...token, ...session.user }
       }
       if (user) {
-        token.id = user.id
-        token.email = user.email
-        token.name = user.name
-        token.preferences = user.preferences
+        return {
+          ...token,
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          preferences: user.preferences || null,
+        }
       }
       return token
     },
     async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string
-        session.user.email = token.email as string
-        session.user.name = token.name as string
-        session.user.preferences = token.preferences
+      return {
+        ...session,
+        user: {
+          ...session.user,
+          id: token.id,
+          email: token.email,
+          name: token.name,
+          image: token.image,
+          preferences: token.preferences
+        }
       }
-      return session
+    }
+  },
+  events: {
+    async signIn(message) {
+      console.log('Sign in event', message);
+    },
+    async error(message) {
+      console.error('NextAuth error', message);
     }
   },
   pages: {
@@ -125,5 +163,5 @@ export const nextAuthConfig: NextAuthOptions = {
     maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   secret: process.env.NEXTAUTH_SECRET,
-  debug: false
-} 
+  debug: process.env.NODE_ENV === 'development'
+}
