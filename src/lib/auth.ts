@@ -75,38 +75,62 @@ export const nextAuthConfig: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async signIn({ account, profile }) {
+    async signIn({ account, profile, user }) {
       if (account?.provider === "google") {
         try {
           if (!profile?.email) {
             console.error("No email found in Google profile");
             return false;
           }
-    
-          const userData = {
-            email: profile.email,
-            name: profile.name || profile.given_name || '',
-            image: profile.picture || null,
-            gmailIntegrated: true,
-            gmailAccessToken: account.access_token || '',
-            gmailRefreshToken: account.refresh_token || '',
-          }
-    
-          if (!userData.email) {
-            console.error("Invalid user data", userData);
-            return false;
-          }
-    
-          await prisma.user.upsert({
-            where: { email: userData.email },
-            update: userData,
-            create: {
-              ...userData,
-              password: '',
-              emailVerified: new Date()
+  
+          // First check if user exists
+          const existingUser = await prisma.user.findUnique({
+            where: { email: profile.email },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              image: true,
+              password: true,
+              preferences: true,
+              gmailIntegrated: true
             }
           });
-    
+  
+          if (existingUser) {
+            // Store the existing user ID in the profile/user object
+            profile.id = existingUser.id;
+            
+            // Update Google-specific fields for existing user
+            await prisma.user.update({
+              where: { id: existingUser.id },
+              data: {
+                gmailIntegrated: true,
+                gmailAccessToken: account.access_token || '',
+                gmailRefreshToken: account.refresh_token || '',
+                // Only update these if they don't exist
+                name: existingUser.name || profile.name,
+                image: existingUser.image || profile.picture,
+              }
+            });
+          } else {
+            // Create new user if doesn't exist
+            const newUser = await prisma.user.create({
+              data: {
+                email: profile.email,
+                name: profile.name || '',
+                image: profile.picture || null,
+                password: '', // Empty password for OAuth users
+                emailVerified: new Date(),
+                gmailIntegrated: true,
+                gmailAccessToken: account.access_token || '',
+                gmailRefreshToken: account.refresh_token || '',
+              }
+            });
+            // Store the new user ID
+            profile.id = newUser.id;
+          }
+  
           return true;
         } catch (error) {
           console.error("Detailed Google sign-in error:", error);
@@ -115,34 +139,30 @@ export const nextAuthConfig: NextAuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, trigger, session }) {
-      if (trigger === "update" && session) {
-        return { ...token, ...session.user }
-      }
-      if (user) {
-        return {
-          ...token,
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          image: user.image,
-          preferences: user.preferences || null,
+
+    async jwt({ token, user, account, profile }) {
+      // If signing in
+      if (account && profile) {
+        if (account.provider === "google") {
+          token.id = profile.id; // Use the ID we stored earlier
+          token.accessToken = account.access_token;
+          token.refreshToken = account.refresh_token;
+        } else if (account.provider === "credentials") {
+          token.id = user.id;
         }
       }
-      return token
+      return token;
     },
+
     async session({ session, token }) {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id,
-          email: token.email,
-          name: token.name,
-          image: token.image,
-          preferences: token.preferences
+      if (session.user) {
+        session.user.id = token.id as string;
+        if (token.accessToken) {
+          session.accessToken = token.accessToken as string;
+          session.refreshToken = token.refreshToken as string;
         }
       }
+      return session;
     }
   },
   events: {
