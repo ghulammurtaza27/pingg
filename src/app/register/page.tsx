@@ -2,12 +2,14 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { signIn } from "next-auth/react"
 import { Button } from "@/app/components/ui/button"
 import { Input } from "@/app/components/ui/input"
 import { Label } from "@/app/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
+import { FcGoogle } from "react-icons/fc"
 
 type AlertType = 'success' | 'error'
 
@@ -39,6 +41,10 @@ export default function RegisterPage() {
         type: 'error' as AlertType
       })
     }
+  }
+
+  const handleGoogleSignIn = async () => {
+    await signIn("google", { callbackUrl: "/dashboard" })
   }
 
   return (
@@ -85,8 +91,11 @@ export default function RegisterPage() {
               </div>
             </div>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="flex flex-col gap-2">
             <Button type="submit" className="w-full">Register</Button>
+            <Button onClick={handleGoogleSignIn} className="w-full flex items-center justify-center gap-2 bg-blue-500 text-white">
+              <FcGoogle className="h-5 w-5" /> Register with Google
+            </Button>
           </CardFooter>
         </form>
       </Card>
