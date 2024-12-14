@@ -56,6 +56,9 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
   const questionRefs = useRef<(HTMLDivElement | null)[]>([])
   const [isCoalesced, setIsCoalesced] = useState(false)
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBase | null>(null)
+  const [isAnswering, setIsAnswering] = useState(false)
+  const [points, setPoints] = useState(0)
+  const [showCelebration, setShowCelebration] = useState(false)
 
   const initializeNewConversation = async () => {
     try {
@@ -233,6 +236,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
 
     setError(null)
     setIsSubmitting(true)
+    setIsAnswering(true)
     
     try {
       const updatedConversation = [...conversation]
@@ -290,12 +294,16 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
       setCurrentAnswer('')
       setCurrentIndex(prev => prev + 1)
       setProgress((currentIndex + 1) / updatedConversation.length * 100)
+      setPoints(prev => prev + 10)
+      setShowCelebration(true)
+      setTimeout(() => setShowCelebration(false), 2000)
 
     } catch (error) {
       console.error('Error in handleAnswerSubmit:', error)
       setError(error instanceof Error ? error.message : "Failed to process answer")
     } finally {
       setIsSubmitting(false)
+      setIsAnswering(false)
     }
   }
 
@@ -356,6 +364,7 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.5 }}
                   className="space-y-6"
                 >
                   <Card>
@@ -365,14 +374,18 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
                     <CardContent className="space-y-4">
                       <div className="space-y-4">
                         {conversation.slice(0, currentIndex + 1).map((entry, index) => (
-                          <div
+                          <motion.div
                             key={entry.id}
                             ref={el => questionRefs.current[index] = el}
+                            initial={{ opacity: 1, y: 0 }}
+                            animate={isAnswering && index === currentIndex ? { opacity: 0, y: -20 } : { opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            transition={{ duration: 0.5 }}
                             className="p-4 bg-muted rounded-lg opacity-75"
                           >
                             <p className="font-medium">{entry.question}</p>
                             <p className="mt-2 text-sm">{entry.answer}</p>
-                          </div>
+                          </motion.div>
                         ))}
 
                         <div className="p-4 bg-muted rounded-lg">
@@ -453,6 +466,17 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
           )}
         </>
       )}
+      {showCelebration && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.5 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.5 }}
+          className="absolute top-0 left-0 right-0 flex justify-center items-center"
+        >
+          <div className="text-2xl text-green-500">🎉 +10 Points!</div>
+        </motion.div>
+      )}
+      <div>Total Points: {points}</div>
     </div>
   )
 }

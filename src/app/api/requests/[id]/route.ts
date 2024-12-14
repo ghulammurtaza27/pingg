@@ -57,7 +57,8 @@ export async function POST(
       return Response.json({ error: 'Request not found' }, { status: 404 })
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" })
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash-exp" })
+    console.log(model);
 
     const prompt = `
       Analyze this request and provide a detailed strategic report:

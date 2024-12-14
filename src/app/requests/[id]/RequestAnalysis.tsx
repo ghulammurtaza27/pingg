@@ -25,7 +25,7 @@ function parseCompetitorTable(content: string): CompetitorData[] {
     .split('\n')
     .filter(line => line.includes('|'))
     .map(line => line.split('|').map(cell => cell.trim()).filter(Boolean))
-    .filter(row => row.length >= 6) // Ensure we have all columns
+    .filter(row => row.length === 6) // Ensure we have exactly 6 columns
     .filter(row => !row[0].includes('Competitor') && !row[0].includes('---')) // Remove headers and separators
 
   return rows.map(([competitor, strengths, weaknesses, marketShare, valueProp, threat]) => ({
