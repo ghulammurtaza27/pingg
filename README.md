@@ -81,7 +81,7 @@ cp .env.example .env.local
 4. Configure your `.env.local` file:
 ```env
 # Database
-DATABASE_URL="postgresql://username:password@localhost:5432/pingai?schema=public"
+DATABASE_URL="postgresql://username:password@localhost:5432/pingg?schema=public"
 
 # NextAuth
 NEXTAUTH_URL="http://localhost:3000"

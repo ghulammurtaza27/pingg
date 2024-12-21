@@ -4,7 +4,7 @@ import { nextAuthConfig } from "@/lib/auth"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 
 // Initialize the Google AI client with debug logging
-const apiKey = process.env.GOOGLE_AI_API_KEY
+const apiKey = process.env.GOOGLE_API_KEY
 
 
 const genAI = new GoogleGenerativeAI(apiKey || '')

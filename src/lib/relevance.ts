@@ -18,9 +18,9 @@ type FormattedKnowledgeBase = {
 }
 
 // Check if API key exists
-const apiKey = process.env.GOOGLE_AI_KEY
+const apiKey = process.env.GOOGLE_API_KEY
 if (!apiKey) {
-  console.warn('GOOGLE_AI_KEY is not set in environment variables')
+  console.warn('GOOGLE_API_KEY is not set in environment variables')
 }
 
 const genAI = new GoogleGenerativeAI(apiKey || 'dummy-key')
