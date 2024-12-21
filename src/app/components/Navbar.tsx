@@ -123,6 +123,7 @@ export function Navbar() {
               <NavLink href="/requests">Requests</NavLink>
               <NavLink href="/analytics">Analytics</NavLink>
               <NavLink href="/settings">Settings</NavLink>
+              <NavLink href="/gmail">Gmail</NavLink>
             </div>
           </div>
           <div className="flex items-center space-x-4">

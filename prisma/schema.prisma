@@ -75,6 +75,7 @@ model Agent {
   receivedRequests Request[] @relation("RecipientAgent")
   knowledgeBaseQuestions KnowledgeBaseQuestion[]
   knowledgeBases KnowledgeBase[]
+  @@unique([userId, type], name: "userIdType")
 }
 
 model Request {
@@ -86,6 +87,7 @@ model Request {
   senderAgentId    String
   recipientAgentId String
   userId           String
+  senderName       String?  // Add this field, make it optional with String?
   response         String?  @db.Text  // Response from recipient agent
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -193,4 +195,3 @@ model UserPreferences {
   
   @@index([userId])
 }
-

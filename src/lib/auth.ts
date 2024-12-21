@@ -14,7 +14,7 @@ export const nextAuthConfig: NextAuthOptions = {
           scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/gmail.readonly',
           prompt: "consent",
           access_type: "offline",
-          response_type: "code"
+          response_type: "code",
         }
       },
       profile(profile) {
@@ -75,7 +75,7 @@ export const nextAuthConfig: NextAuthOptions = {
     })
   ],
   callbacks: {
-    async signIn({ account, profile, user }) {
+    async signIn({ account, profile }) {
       if (account?.provider === "google") {
         try {
           if (!profile?.email) {
@@ -83,7 +83,6 @@ export const nextAuthConfig: NextAuthOptions = {
             return false;
           }
   
-          // First check if user exists
           const existingUser = await prisma.user.findUnique({
             where: { email: profile.email },
             select: {
@@ -98,36 +97,30 @@ export const nextAuthConfig: NextAuthOptions = {
           });
   
           if (existingUser) {
-            // Store the existing user ID in the profile/user object
             profile.id = existingUser.id;
-            
-            // Update Google-specific fields for existing user
             await prisma.user.update({
               where: { id: existingUser.id },
               data: {
                 gmailIntegrated: true,
                 gmailAccessToken: account.access_token || '',
                 gmailRefreshToken: account.refresh_token || '',
-                // Only update these if they don't exist
                 name: existingUser.name || profile.name,
                 image: existingUser.image || profile.picture,
               }
             });
           } else {
-            // Create new user if doesn't exist
             const newUser = await prisma.user.create({
               data: {
                 email: profile.email,
                 name: profile.name || '',
                 image: profile.picture || null,
-                password: '', // Empty password for OAuth users
+                password: '',
                 emailVerified: new Date(),
                 gmailIntegrated: true,
                 gmailAccessToken: account.access_token || '',
                 gmailRefreshToken: account.refresh_token || '',
               }
             });
-            // Store the new user ID
             profile.id = newUser.id;
           }
   
@@ -137,14 +130,13 @@ export const nextAuthConfig: NextAuthOptions = {
           return false;
         }
       }
-      return true;
+      return true; // Allow sign-in for other providers
     },
 
     async jwt({ token, user, account, profile }) {
-      // If signing in
       if (account && profile) {
         if (account.provider === "google") {
-          token.id = profile.id; // Use the ID we stored earlier
+          token.id = profile.id;
           token.accessToken = account.access_token;
           token.refreshToken = account.refresh_token;
         } else if (account.provider === "credentials") {

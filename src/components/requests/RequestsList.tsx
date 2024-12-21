@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Card } from "@/app/components/ui/card"
 import { Badge } from "@/app/components/ui/badge"
-import { Loader2, AlertCircle, ArrowRight, ArrowLeftRight } from "lucide-react"
+import { Loader2, AlertCircle, ArrowRight, ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
 
@@ -29,6 +29,7 @@ export default function RequestsList() {
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchRequests()
@@ -49,6 +50,18 @@ export default function RequestsList() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const toggleExpand = (id: string) => {
+    setExpandedRequests(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(id)) {
+        newSet.delete(id)
+      } else {
+        newSet.add(id)
+      }
+      return newSet
+    })
   }
 
   const getStatusColor = (status: string) => {
@@ -108,6 +121,18 @@ export default function RequestsList() {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="p-0 hover:bg-transparent"
+                    onClick={() => toggleExpand(request.id)}
+                  >
+                    {expandedRequests.has(request.id) ? (
+                      <ChevronUp className="h-5 w-5 text-gray-400" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-400" />
+                    )}
+                  </Button>
                   <div className="flex items-center text-sm">
                     <span className="font-medium text-gray-200">{request.senderAgent.name}</span>
                     <ArrowLeftRight className="mx-2 h-4 w-4 text-gray-500" />
@@ -126,18 +151,20 @@ export default function RequestsList() {
               </div>
 
               {/* Content */}
-              <div className="space-y-4 pl-4 border-l-2 border-[#2a3441]">
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-200 mb-2">Summary</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">{request.summary}</p>
+              {expandedRequests.has(request.id) && (
+                <div className="space-y-4 pl-4 border-l-2 border-[#2a3441]">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-200 mb-2">Summary</h3>
+                    <p className="text-sm text-gray-400 leading-relaxed">{request.summary}</p>
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-200 mb-2">Considerations</h3>
+                    <p className="text-sm text-gray-400 leading-relaxed">{request.considerations}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-200 mb-2">Considerations</h3>
-                  <p className="text-sm text-gray-400 leading-relaxed">{request.considerations}</p>
-                </div>
-              </div>
+              )}
 
-              {/* Footer */}
+              {/* Footer - Always visible */}
               <div className="flex items-center justify-between pt-2">
                 <p className="text-xs text-gray-500">
                   Created {new Date(request.createdAt).toLocaleDateString(undefined, {
@@ -165,4 +192,4 @@ export default function RequestsList() {
       </div>
     </div>
   )
-} 
+}
