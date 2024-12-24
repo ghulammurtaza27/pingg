@@ -46,15 +46,16 @@ export function Notifications() {
 
       // Show system notification
       if (Notification.permission === 'granted') {
-        new Notification(data.title, {
+        const notification = new Notification(data.title, {
           body: data.message,
           icon: '/icon.png',
-          data: { url: data.url },
-          onClick: function() {
-            window.focus()
-            router.push(this.data.url)
-          }
+          data: { url: data.url }
         })
+
+        notification.onclick = function() {
+          window.focus()
+          router.push(this.data.url)
+        }
       }
     })
 

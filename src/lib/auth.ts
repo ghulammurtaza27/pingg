@@ -97,7 +97,6 @@ export const nextAuthConfig: NextAuthOptions = {
           });
   
           if (existingUser) {
-            profile.id = existingUser.id;
             await prisma.user.update({
               where: { id: existingUser.id },
               data: {
@@ -105,15 +104,17 @@ export const nextAuthConfig: NextAuthOptions = {
                 gmailAccessToken: account.access_token || '',
                 gmailRefreshToken: account.refresh_token || '',
                 name: existingUser.name || profile.name,
-                image: existingUser.image || profile.picture,
+                image: existingUser.image || profile.image,
               }
             });
+            
+            account.userId = existingUser.id;
           } else {
             const newUser = await prisma.user.create({
               data: {
                 email: profile.email,
                 name: profile.name || '',
-                image: profile.picture || null,
+                image: profile.image || null,
                 password: '',
                 emailVerified: new Date(),
                 gmailIntegrated: true,
@@ -121,7 +122,8 @@ export const nextAuthConfig: NextAuthOptions = {
                 gmailRefreshToken: account.refresh_token || '',
               }
             });
-            profile.id = newUser.id;
+            
+            account.userId = newUser.id;
           }
   
           return true;
@@ -133,14 +135,16 @@ export const nextAuthConfig: NextAuthOptions = {
       return true; // Allow sign-in for other providers
     },
 
-    async jwt({ token, user, account, profile }) {
-      if (account && profile) {
+    async jwt({ token, user, account }) {
+      if (account) {
         if (account.provider === "google") {
-          token.id = profile.id;
+          token.id = account.userId;
           token.accessToken = account.access_token;
           token.refreshToken = account.refresh_token;
+          token.gmailIntegrated = true;
         } else if (account.provider === "credentials") {
           token.id = user.id;
+          token.gmailIntegrated = false;
         }
       }
       return token;
@@ -149,6 +153,7 @@ export const nextAuthConfig: NextAuthOptions = {
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id as string;
+        session.user.gmailIntegrated = token.gmailIntegrated as boolean;
         if (token.accessToken) {
           session.accessToken = token.accessToken as string;
           session.refreshToken = token.refreshToken as string;
@@ -160,9 +165,6 @@ export const nextAuthConfig: NextAuthOptions = {
   events: {
     async signIn(message) {
       console.log('Sign in event', message);
-    },
-    async error(message) {
-      console.error('NextAuth error', message);
     }
   },
   pages: {

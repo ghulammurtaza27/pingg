@@ -1,163 +1,156 @@
 import { NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { nextAuthConfig } from "@/lib/auth"
-import { GoogleGenerativeAI } from "@google/generative-ai"
 import prisma from "@/lib/prisma"
+import { geminiModel } from "@/lib/gemini"
 
-const apiKey = process.env.GOOGLE_API_KEY
-const genAI = new GoogleGenerativeAI(apiKey || '')
-
-interface CoalescedData {
-  summary: string;
-  capabilities: string[];
-  useCases: string[];
-  limitations: string[];
-  additionalContext: string;
-}
-
-function cleanResponse(text: string): string {
-  const jsonMatch = text.match(/```(?:json|JSON)?\n?([\s\S]*?)\n?```/)
-  if (jsonMatch) {
-    return jsonMatch[1].trim()
+function cleanMarkdownJSON(text: string): string {
+  // Remove markdown code blocks and clean up the text
+  const cleaned = text
+    .replace(/```json\s*|\s*```/g, '')
+    .replace(/```javascript\s*|\s*```/g, '')
+    .trim()
+  
+  // If the text doesn't start with {, try to find the first {
+  if (!cleaned.startsWith('{')) {
+    const jsonStart = cleaned.indexOf('{')
+    if (jsonStart !== -1) {
+      return cleaned.slice(jsonStart)
+    }
   }
-  return text.trim()
+  return cleaned
 }
 
 export async function POST(request: Request) {
   try {
     const session = await getServerSession(nextAuthConfig)
+
     if (!session?.user) {
-      return new Response(
-        JSON.stringify({ success: false, error: { message: "Unauthorized" } }),
-        { status: 401, headers: { 'Content-Type': 'application/json' } }
-      )
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const body = await request.json()
-    const { knowledgeBaseId } = body
+    const { knowledgeBaseId, agentId } = await request.json()
 
-    if (!knowledgeBaseId) {
-      return new Response(
-        JSON.stringify({ success: false, error: { message: "Knowledge base ID is required" } }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      )
+    if (!knowledgeBaseId || !agentId) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    // Get knowledge base entries
     const knowledgeBase = await prisma.knowledgeBase.findUnique({
       where: { id: knowledgeBaseId },
-      include: { 
+      include: {
         entries: true,
         agent: true
       }
     })
 
     if (!knowledgeBase) {
-      return new Response(
-        JSON.stringify({ success: false, error: { message: "Knowledge base not found" } }),
-        { status: 404, headers: { 'Content-Type': 'application/json' } }
-      )
+      return NextResponse.json({ error: "Knowledge base not found" }, { status: 404 })
     }
 
-    const conversationContext = knowledgeBase.entries
-      .map(entry => `Q: ${entry.question}\nA: ${entry.answer}`)
-      .join('\n\n')
+    // Create context from entries
+    const context = knowledgeBase.entries.map(entry => 
+      `Q: ${entry.question}\nA: ${entry.answer}`
+    ).join('\n\n')
 
-    const prompt = `Analyze this Q&A conversation and create a structured summary:
-${conversationContext}
+    const prompt = `Analyze this knowledge base and create a comprehensive summary.
+Return ONLY a JSON object in this exact format:
+{
+  "summary": "Brief overview of the knowledge base content and purpose",
+  "capabilities": ["List of key capabilities identified"],
+  "useCases": ["List of primary use cases"],
+  "limitations": ["List of identified limitations or constraints"],
+  "additionalContext": "Any other relevant insights"
+}
 
-Consider the following context:
+Knowledge Base Content:
+${context}
+
+Agent Type: ${knowledgeBase.agent.type}
 Industry: ${knowledgeBase.industry}
 Use Case: ${knowledgeBase.useCase}
-Main Goals: ${knowledgeBase.mainGoals.join(', ')}
+Goals: ${knowledgeBase.mainGoals?.join(', ')}
 
-Respond with a JSON object containing:
-{
-  "summary": "Brief overview of purpose",
-  "capabilities": ["Key functionalities"],
-  "useCases": ["Specific use cases"],
-  "limitations": ["Known limitations"],
-  "additionalContext": "Other important details"
-}`
+Remember to:
+1. Return ONLY valid JSON
+2. Include all required fields
+3. Make lists specific and actionable
+4. Keep the summary concise but comprehensive`
 
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" })
-    const result = await model.generateContent(prompt)
-    
-    if (!result.response) {
-      throw new Error('No response from AI model')
-    }
-    
-    const response = result.response.text()
-    const cleanedResponse = cleanResponse(response)
-    const parsedResponse = JSON.parse(cleanedResponse)
-
-    const coalescedData = {
-      summary: String(parsedResponse.summary || ''),
-      capabilities: Array.isArray(parsedResponse.capabilities) ? parsedResponse.capabilities : [],
-      useCases: Array.isArray(parsedResponse.useCases) ? parsedResponse.useCases : [],
-      limitations: Array.isArray(parsedResponse.limitations) ? parsedResponse.limitations : [],
-      additionalContext: String(parsedResponse.additionalContext || '')
-    }
+    const result = await geminiModel.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
 
     try {
-      // Create or update the coalesced summary
+      // Clean and parse the response
+      const cleanedResponse = cleanMarkdownJSON(text)
+      const parsedResponse = JSON.parse(cleanedResponse)
+
+      // Validate response structure
+      if (!parsedResponse.summary || !parsedResponse.capabilities || 
+          !parsedResponse.useCases || !parsedResponse.limitations) {
+        throw new Error('Invalid response structure')
+      }
+
+      // Update or create coalesced summary
       const updatedKnowledgeBase = await prisma.knowledgeBase.update({
         where: { id: knowledgeBaseId },
         data: {
           coalesced: true,
-          updatedAt: new Date(),
           coalescedSummary: {
             upsert: {
-              create: coalescedData,
-              update: coalescedData
+              create: {
+                summary: parsedResponse.summary,
+                capabilities: parsedResponse.capabilities,
+                useCases: parsedResponse.useCases,
+                limitations: parsedResponse.limitations,
+                additionalContext: parsedResponse.additionalContext
+              },
+              update: {
+                summary: parsedResponse.summary,
+                capabilities: parsedResponse.capabilities,
+                useCases: parsedResponse.useCases,
+                limitations: parsedResponse.limitations,
+                additionalContext: parsedResponse.additionalContext
+              }
             }
           }
         },
         include: {
           entries: true,
-          agent: true,
           coalescedSummary: true
         }
       })
 
-      return new Response(
-        JSON.stringify({
-          success: true,
-          data: { 
-            knowledgeBase: {
-              ...updatedKnowledgeBase,
-              coalescedData
-            }
-          }
-        }),
-        { status: 200, headers: { 'Content-Type': 'application/json' } }
-      )
+      return NextResponse.json({
+        success: true,
+        data: {
+          knowledgeBase: updatedKnowledgeBase
+        }
+      })
 
-    } catch (error) {
-      if (error instanceof Error) {
-        console.error('Database update error:', error.message)
-      }
-      return new Response(
-        JSON.stringify({ 
-          success: false, 
-          error: { message: "Failed to update knowledge base" } 
-        }),
-        { status: 500, headers: { 'Content-Type': 'application/json' } }
-      )
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', {
+        error: parseError,
+        rawResponse: text,
+        cleanedResponse: cleanMarkdownJSON(text)
+      })
+      
+      return NextResponse.json({
+        error: {
+          message: "Failed to parse AI response",
+          details: parseError instanceof Error ? parseError.message : 'Unknown error'
+        }
+      }, { status: 500 })
     }
 
   } catch (error) {
-    if (error instanceof Error) {
-      console.error('API Error:', error.message)
-    }
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: { 
-          message: "Server error",
-          details: error instanceof Error ? error.message : 'Unknown error'
-        } 
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    console.error('Coalesce error:', error)
+    return NextResponse.json({
+      error: {
+        message: "Failed to coalesce knowledge base",
+        details: error instanceof Error ? error.message : 'Unknown error'
+      }
+    }, { status: 500 })
   }
 } 

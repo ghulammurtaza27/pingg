@@ -1,28 +1,43 @@
 "use client";
 
 import { useState } from 'react';
-import EmailList from '@/components/EmailList'; // Adjust the import path as necessary
+import EmailList from '@/components/EmailList';
+
+interface EmailHeader {
+  name: string;
+  value: string;
+}
+
+interface EmailPayload {
+  headers: EmailHeader[];
+  body?: {
+    data: string;
+  };
+  parts?: Array<{
+    mimeType: string;
+    body: {
+      data: string;
+    };
+  }>;
+}
 
 interface Email {
   id: string;
-  threadId: string;
-  subject: string;
-  body: string;
+  payload: EmailPayload;
 }
 
 export default function GmailPage() {
-  const [emails, setEmails] = useState<Email[]>([]); // State for emails
-  const [isFetching, setIsFetching] = useState<boolean>(false); // State to manage fetching status
+  const [emails, setEmails] = useState<Email[]>([]);
+  const [isFetching, setIsFetching] = useState<boolean>(false);
 
   const handleFetchEmails = async () => {
-    setIsFetching(true); // Set fetching state to true
+    setIsFetching(true);
     try {
       const response = await fetch('/api/gmail/fetch-emails');
-      const data = await response.json(); // Parse the response
-      console.log('API Response:', data); // Log the response
+      const data = await response.json();
+      console.log('API Response:', data);
 
       if (response.ok) {
-        // Check if the data is an array of messages
         if (Array.isArray(data) && data.length > 0) {
           const emailDetailsPromises = data.map(async (message) => {
             const emailResponse = await fetch(`/api/gmail/fetch-email/${message.id}`);
@@ -44,7 +59,7 @@ export default function GmailPage() {
     } catch (error) {
       console.error('Error in handleFetchEmails:', error);
     } finally {
-      setIsFetching(false); // Reset fetching state
+      setIsFetching(false);
     }
   };
 
@@ -59,7 +74,6 @@ export default function GmailPage() {
         {isFetching ? 'Fetching...' : 'Fetch Emails'}
       </button>
 
-      {/* Render EmailList component if emails are fetched */}
       <EmailList emails={emails} />
     </div>
   );

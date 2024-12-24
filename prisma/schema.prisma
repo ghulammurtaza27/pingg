@@ -82,7 +82,7 @@ model Request {
   id               String   @id @default(cuid())
   summary          String   @db.Text
   considerations   String   @db.Text
-  relevanceScore   Float    // Score from 0-1 measuring relevance against recipient's knowledge base
+  relevanceScore   Float    @default(0)    // Score from 0-1 measuring relevance against recipient's knowledge base
   status           String   @default("pending") // pending, accepted, rejected, completed
   senderAgentId    String
   recipientAgentId String
@@ -158,8 +158,14 @@ model KnowledgeBaseEntry {
   knowledgeBase   KnowledgeBase @relation(fields: [knowledgeBaseId], references: [id])
   question        String
   answer          String
+  source          String        @default("manual")
+  sourceId        String?
+  orderIndex      Int          @default(0)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  @@index([knowledgeBaseId])
+  @@index([orderIndex])
 }
 
 model RequestAnalysis {

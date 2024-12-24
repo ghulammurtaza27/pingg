@@ -2,14 +2,21 @@ import { getServerSession } from "next-auth/next"
 import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { GoogleGenerativeAI } from "@google/generative-ai"
+import { NextRequest } from 'next/server'
 
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!)
 
+type Props = {
+  params: Promise<{
+    id: string
+  }>
+}
+
 export async function GET(
-  request: Request,
-  context: { params: { id: string } }
+  request: NextRequest,
+  { params }: Props
 ) {
-  const { id } = await context.params
+  const { id } = await params
 
   try {
     const session = await getServerSession(nextAuthConfig)
@@ -33,10 +40,10 @@ export async function GET(
 }
 
 export async function POST(
-  request: Request,
-  context: { params: { id: string } }
+  request: NextRequest,
+  { params }: Props
 ) {
-  const { id } = await context.params
+  const { id } = await params
 
   try {
     const session = await getServerSession(nextAuthConfig)

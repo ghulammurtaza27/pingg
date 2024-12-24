@@ -1,13 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from "next-auth/next"
 import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 
+type Props = {
+  params: Promise<{
+    id: string
+  }>
+}
+
 export async function GET(
-  request: Request,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  { params }: Props
 ) {
   try {
+    const { id } = await params
     const session = await getServerSession(nextAuthConfig)
 
     if (!session?.user) {
@@ -16,8 +23,6 @@ export async function GET(
         { status: 401 }
       )
     }
-
-    const id = await params.id
 
     const agent = await prisma.agent.findUnique({
       where: { id },
@@ -45,4 +50,4 @@ export async function GET(
       { status: 500 }
     )
   }
-} 
+}

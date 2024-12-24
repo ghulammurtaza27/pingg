@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 interface Agent {
   id: string
   name: string
+  status?: 'active' | 'inactive'
 }
 
 interface KnowledgeBase {
@@ -216,7 +217,6 @@ export function KnowledgeBaseOverview({ detailed = false }: { detailed?: boolean
                   </div>
                 </Card>
               )}
-              {/* ... rest of the detailed cards remain unchanged ... */}
             </div>
           )}
         </>

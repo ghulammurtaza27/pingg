@@ -50,7 +50,14 @@ export default function KnowledgeBaseSummaryPage() {
 
         {/* Summary Component */}
         {viewMode === 'demo' && (
-          <CoalescedSummary isDemo={true} />
+          <CoalescedSummary 
+            data={{
+              summary: "Demo summary content",
+              capabilities: ["Capability 1", "Capability 2"],
+              useCases: ["Use case 1", "Use case 2"],
+              limitations: ["Limitation 1", "Limitation 2"]
+            }}
+          />
         )}
         
         {viewMode === 'empty' && (

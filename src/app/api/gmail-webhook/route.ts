@@ -55,6 +55,7 @@ export async function POST(request: Request) {
           senderAgentId: user.agents[0].id,
           recipientAgentId: user.agents[0].id,
           userId: userId,
+          relevanceScore: 0,
         }
       })
 

@@ -26,6 +26,7 @@ export default async function DashboardPage() {
           <TabsTrigger value="requests">Requests</TabsTrigger>
           <TabsTrigger value="knowledge">Knowledge Bases</TabsTrigger>
         </TabsList>
+      
 
         <TabsContent value="overview">
           <div className="grid gap-6 md:grid-cols-2">

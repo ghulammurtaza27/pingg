@@ -1,12 +1,13 @@
 'use client'
 
+import * as React from 'react'
 import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Mail, AlertCircle, HelpCircle, Loader2 } from "lucide-react"
 import { Button } from '@/app/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card'
 import { Textarea } from '@/app/components/ui/textarea'
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
-import { AlertCircle, HelpCircle } from "lucide-react"
 import { Progress } from "@/app/components/ui/progress"
 import {
   Popover,
@@ -22,6 +23,8 @@ type Conversation = {
   answer: string
   followUpQuestions?: string[]
   suggestions?: string[]
+  source?: string
+  sourceId?: string
 }
 
 type KnowledgeBase = {
@@ -43,8 +46,12 @@ type KnowledgeBase = {
 
 const INITIAL_QUESTION = "What is the primary purpose of this system?"
 
-export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string, onComplete: () => void }) {
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
+const isValidIndex = (index: number, array: any[]): boolean => {
+  return index >= 0 && index < array.length
+}
+
+const KnowledgeBaseCreation: React.FC<{ agentId: string; onComplete: () => void }> = ({ agentId, onComplete }) => {
+  const [isInitialLoading, setIsInitialLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [conversation, setConversation] = useState<Conversation[]>([])
   const [currentAnswer, setCurrentAnswer] = useState('')
@@ -59,26 +66,50 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
   const [isAnswering, setIsAnswering] = useState(false)
   const [points, setPoints] = useState(0)
   const [showCelebration, setShowCelebration] = useState(false)
+  const [emailEntries, setEmailEntries] = useState<Array<{
+    id: string;
+    question: string;
+    answer: string;
+    source: string;
+    sourceId?: string;
+  }>>([])
+  const [alert, setAlert] = useState<{ type: 'success' | 'error', message: string } | null>(null)
+  const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false)
+  const [questionRetryCount, setQuestionRetryCount] = useState(0)
+  const maxRetries = 3
 
   const initializeNewConversation = async () => {
     try {
-      // If we have existing conversation, don't start over
+      setIsGeneratingQuestions(true)
+      setError(null)
+
+      // If we have existing conversation, handle follow-up questions
       if (conversation.length > 0) {
         const lastAnsweredIndex = conversation.findIndex(entry => !entry.answer)
         
         if (lastAnsweredIndex === -1) {
-          // All questions are answered, generate new questions from the last answer
+          // All questions are answered, generate new questions
           const lastEntry = conversation[conversation.length - 1]
-          const followUpQuestions = await generateFollowUpQuestions(
-            lastEntry.question,
-            lastEntry.answer
-          )
-          
+          let followUpQuestions = []
+          let retryCount = 0
+
+          while (followUpQuestions.length === 0 && retryCount < maxRetries) {
+            followUpQuestions = await generateFollowUpQuestions(
+              lastEntry.question,
+              lastEntry.answer
+            )
+            retryCount++
+          }
+
+          if (followUpQuestions.length === 0) {
+            throw new Error('Failed to generate follow-up questions')
+          }
+
           const newQuestions = await Promise.all(
-            followUpQuestions.map(async (question) => {
+            followUpQuestions.map(async (question: string) => {
               const suggestions = await generateAnswerSuggestions(question)
               return {
-                id: `${conversation.length}-${Date.now()}`,
+                id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
                 question,
                 answer: '',
                 suggestions
@@ -86,17 +117,27 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
             })
           )
           
-          setConversation([...conversation, ...newQuestions])
+          setConversation(prev => [...prev, ...newQuestions])
           setCurrentIndex(conversation.length)
         } else {
-          // Continue from the first unanswered question
           setCurrentIndex(lastAnsweredIndex)
         }
       } else {
-        // Initialize with the first question for new conversations
-        const suggestions = await generateAnswerSuggestions(INITIAL_QUESTION)
+        // Initialize with first question
+        let suggestions = []
+        let retryCount = 0
+
+        while (suggestions.length === 0 && retryCount < maxRetries) {
+          suggestions = await generateAnswerSuggestions(INITIAL_QUESTION)
+          retryCount++
+        }
+
+        if (suggestions.length === 0) {
+          throw new Error('Failed to generate initial suggestions')
+        }
+
         setConversation([{
-          id: '0',
+          id: `initial-${Date.now()}`,
           question: INITIAL_QUESTION,
           answer: '',
           suggestions
@@ -105,9 +146,21 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
       }
       
       setShowKnowledgeBase(false)
+      setQuestionRetryCount(0) // Reset retry count on success
+
     } catch (error) {
       console.error('Error initializing conversation:', error)
       setError('Failed to initialize conversation')
+      
+      // Implement retry logic
+      if (questionRetryCount < maxRetries) {
+        setQuestionRetryCount(prev => prev + 1)
+        setTimeout(() => {
+          initializeNewConversation()
+        }, 1000 * (questionRetryCount + 1))
+      }
+    } finally {
+      setIsGeneratingQuestions(false)
     }
   }
 
@@ -204,29 +257,11 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
     }
 
     fetchExistingKnowledgeBase()
-  }, [agentId])
+  }, [agentId, initializeNewConversation])
 
   useEffect(() => {
     questionRefs.current = questionRefs.current.slice(0, conversation.length)
   }, [conversation])
-
-  if (isInitialLoading) {
-    return <div>Loading knowledge base...</div>
-  }
-
-  if (error) {
-    return (
-      <div className="text-red-500">
-        Error loading knowledge base: {error}
-        <button 
-          onClick={() => window.location.reload()}
-          className="ml-4 text-blue-500 underline"
-        >
-          Retry
-        </button>
-      </div>
-    )
-  }
 
   const handleAnswerSubmit = async () => {
     if (!currentAnswer.trim()) {
@@ -239,60 +274,54 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
     setIsAnswering(true)
     
     try {
+      setIsSubmitting(true)
+      
       const updatedConversation = [...conversation]
       updatedConversation[currentIndex] = {
         ...updatedConversation[currentIndex],
         answer: currentAnswer
       }
 
-      let followUpQuestions: string[] = []
-      try {
-        followUpQuestions = await generateFollowUpQuestions(
-          updatedConversation[currentIndex].question,
-          currentAnswer
-        )
-      } catch (error) {
-        console.error('Error generating follow-up questions:', error)
-        // Continue without follow-up questions
-      }
-
-      if (followUpQuestions && followUpQuestions.length > 0) {
-        for (const question of followUpQuestions) {
-          const suggestions = await generateAnswerSuggestions(question)
-          
-          updatedConversation.push({
-            id: `${currentIndex + 1}-${updatedConversation.length}`,
-            question,
-            answer: "",
-            followUpQuestions: [],
-            suggestions
-          })
-        }
-      }
-
-      const response = await fetch('/api/knowledge-base/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          agentId,
-          knowledgeBaseId,
-          conversation: updatedConversation,
-          currentAnswer,
-          currentQuestion: conversation[currentIndex].question
-        })
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || 'Failed to update knowledge base')
-      }
-      
-      const { knowledgeBase } = await response.json()
-      setKnowledgeBaseId(knowledgeBase.id)
-
+      await handleUpdate(updatedConversation)
       setConversation(updatedConversation)
       setCurrentAnswer('')
-      setCurrentIndex(prev => prev + 1)
+
+      // Show loading state before generating new questions
+      if (currentIndex >= updatedConversation.length - 1) {
+        setIsGeneratingQuestions(true)
+        
+        try {
+          const followUpQuestions = await generateFollowUpQuestions(
+            updatedConversation[currentIndex].question,
+            currentAnswer
+          )
+          
+          if (followUpQuestions && followUpQuestions.length > 0) {
+            const newQuestions = await Promise.all(
+              followUpQuestions.map(async (question: string) => {
+                const suggestions = await generateAnswerSuggestions(question)
+                return {
+                  id: `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+                  question,
+                  answer: '',
+                  suggestions
+                }
+              })
+            )
+            
+            setConversation(prev => [...prev, ...newQuestions])
+            setCurrentIndex(updatedConversation.length)
+          } else {
+            setShowKnowledgeBase(true)
+          }
+        } finally {
+          setIsGeneratingQuestions(false)
+        }
+      } else {
+        setCurrentIndex(prev => prev + 1)
+      }
+
+      // Update progress and show celebration
       setProgress((currentIndex + 1) / updatedConversation.length * 100)
       setPoints(prev => prev + 10)
       setShowCelebration(true)
@@ -303,7 +332,6 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
       setError(error instanceof Error ? error.message : "Failed to process answer")
     } finally {
       setIsSubmitting(false)
-      setIsAnswering(false)
     }
   }
 
@@ -311,7 +339,15 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
     setShowKnowledgeBase(true)
   }
 
-  const handleUpdateKnowledgeBase = async (updatedEntries: KnowledgeBaseEntry[]) => {
+  const handleUpdate = async (updatedEntries: Array<{
+    id: string;
+    question: string;
+    answer: string;
+    source?: string;
+  }>) => {
+    setIsSubmitting(true)
+    setError(null)
+
     try {
       const response = await fetch('/api/knowledge-base/update', {
         method: 'POST',
@@ -325,15 +361,39 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('Failed to update knowledge base:', errorData)
-        throw new Error(errorData.error || 'Unknown error')
+        throw new Error(errorData.error || 'Failed to update entries')
       }
+
+      const data = await response.json()
       
-      const { knowledgeBase } = await response.json()
-      setConversation(knowledgeBase.entries)
+      if (!data.success || !data.knowledgeBase) {
+        throw new Error('Failed to update knowledge base')
+      }
+
+      // Update local state with the new entries
+      setKnowledgeBase(data.knowledgeBase)
+      setConversation(data.knowledgeBase.entries.filter((e: { source?: string }) => 
+        e.source === 'manual' || !e.source
+      ))
+      
+      setAlert({
+        type: 'success',
+        message: 'Successfully updated knowledge base'
+      })
+
+      return data.knowledgeBase
+
     } catch (error) {
-      console.error('Error updating knowledge base:', error)
+      console.error('Error updating entries:', error)
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update entries'
+      setError(errorMessage)
+      setAlert({
+        type: 'error',
+        message: errorMessage
+      })
       throw error
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -341,77 +401,169 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
     initializeNewConversation()
   }
 
+  const handleGmailImport = async () => {
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const response = await fetch('/api/knowledge-base/gmail', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId,
+          knowledgeBaseId
+        })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.message || 'Failed to import Gmail messages')
+      }
+
+      const { knowledgeBase, processedEmails } = await response.json()
+      
+      setKnowledgeBase(knowledgeBase)
+      setConversation(knowledgeBase.entries)
+      setPoints(prev => prev + processedEmails)
+      setShowCelebration(true)
+      setTimeout(() => setShowCelebration(false), 2000)
+      
+      setAlert({
+        message: `Successfully imported ${processedEmails} emails`,
+        type: 'success'
+      })
+    } catch (error) {
+      console.error('Error importing Gmail:', error)
+      setError(error instanceof Error ? error.message : 'Failed to import Gmail messages')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      setConversation([])
+      setCurrentIndex(0)
+      setError(null)
+    }
+  }, [])
+
+  const currentEntry = conversation[currentIndex];
+  const hasSuggestions = currentEntry?.suggestions && currentEntry.suggestions.length > 0;
+
   return (
     <div className="space-y-6">
-      {isInitialLoading ? (
-        <div>Loading...</div>
+      {showKnowledgeBase ? (
+        <div className="space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-3xl font-bold">Knowledge Base</h2>
+            <Button 
+              onClick={handleGmailImport}
+              variant="outline"
+              disabled={isSubmitting}
+              size="lg"
+            >
+              <Mail className="h-5 w-5 mr-2" />
+              Import from Gmail
+            </Button>
+          </div>
+
+          {alert && (
+            <Alert variant={alert.type === 'success' ? 'default' : 'destructive'}>
+              <AlertDescription>{alert.message}</AlertDescription>
+            </Alert>
+          )}
+
+          <KnowledgeBaseDisplay 
+            entries={[...conversation, ...emailEntries]}
+            onUpdate={handleUpdate}
+            onContinue={handleContinueAdding}
+            onComplete={onComplete}
+            knowledgeBaseId={knowledgeBaseId!}
+            agentId={agentId}
+          />
+        </div>
       ) : (
         <>
-          {showKnowledgeBase ? (
-            <KnowledgeBaseDisplay 
-              entries={knowledgeBase?.entries || conversation} 
-              onUpdate={handleUpdateKnowledgeBase}
-              onContinue={handleContinueAdding}
-              onComplete={onComplete}
-              knowledgeBaseId={knowledgeBaseId!}
-            />
-          ) : (
-            <>
-              <Progress value={progress} className="w-full h-2" />
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentIndex}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.5 }}
-                  className="space-y-6"
-                >
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Building Knowledge Base</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      <div className="space-y-4">
-                        {conversation.slice(0, currentIndex + 1).map((entry, index) => (
-                          <motion.div
-                            key={entry.id}
-                            ref={el => questionRefs.current[index] = el}
-                            initial={{ opacity: 1, y: 0 }}
-                            animate={isAnswering && index === currentIndex ? { opacity: 0, y: -20 } : { opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.5 }}
-                            className="p-4 bg-muted rounded-lg opacity-75"
-                          >
-                            <p className="font-medium">{entry.question}</p>
-                            <p className="mt-2 text-sm">{entry.answer}</p>
-                          </motion.div>
-                        ))}
+          <Progress value={progress} className="w-full h-2" />
+          <AnimatePresence mode="wait">
+            {isGeneratingQuestions ? (
+              <motion.div
+                key="loading"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="space-y-6"
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Generating New Questions</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex flex-col items-center justify-center p-8 space-y-4">
+                      <div className="animate-spin text-2xl">⏳</div>
+                      <p className="text-muted-foreground">
+                        Analyzing your responses and preparing follow-up questions...
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ) : (
+              <motion.div
+                key={currentIndex}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.5 }}
+                className="space-y-6"
+              >
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Building Knowledge Base</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-4">
+                      {conversation.slice(0, currentIndex).map((entry, index) => (
+                        <motion.div
+                          key={entry.id}
+                          ref={(el: HTMLDivElement | null) => {
+                            if (questionRefs.current) {
+                              questionRefs.current[index] = el;
+                            }
+                          }}
+                          className="p-4 bg-muted rounded-lg"
+                        >
+                          <p className="font-medium">{entry.question}</p>
+                          <p className="mt-2 text-muted-foreground">{entry.answer}</p>
+                        </motion.div>
+                      ))}
 
+                      {conversation[currentIndex] && (
                         <div className="p-4 bg-muted rounded-lg">
-                          <div className="flex items-center justify-between">
-                            <p className="font-medium">{conversation[currentIndex]?.question}</p>
-                            {conversation[currentIndex]?.suggestions && (
+                          <div className="flex items-center justify-between mb-4">
+                            <p className="font-medium">{currentEntry?.question}</p>
+                            {hasSuggestions && (
                               <Popover>
                                 <PopoverTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                                    <HelpCircle className="h-4 w-4" />
+                                  <Button variant="ghost" size="icon">
+                                    <HelpCircle className="h-5 w-5" />
                                   </Button>
                                 </PopoverTrigger>
-                                <PopoverContent className="w-80">
+                                <PopoverContent align="end" className="w-[400px]">
                                   <div className="space-y-2">
-                                    <h4 className="font-medium text-sm">Suggested Answers</h4>
-                                    <ul className="text-sm space-y-1">
-                                      {conversation[currentIndex].suggestions?.map((suggestion, i) => (
-                                        <li 
+                                    <h4 className="font-medium">Suggested Answers:</h4>
+                                    <div className="space-y-2">
+                                      {currentEntry?.suggestions?.map((suggestion, i) => (
+                                        <div
                                           key={i}
-                                          className="p-2 hover:bg-muted rounded-sm cursor-pointer"
                                           onClick={() => setCurrentAnswer(suggestion)}
+                                          className="p-2 hover:bg-muted rounded cursor-pointer text-sm"
                                         >
                                           {suggestion}
-                                        </li>
+                                        </div>
                                       ))}
-                                    </ul>
+                                    </div>
                                   </div>
                                 </PopoverContent>
                               </Popover>
@@ -422,48 +574,46 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
                             onChange={(e) => setCurrentAnswer(e.target.value)}
                             placeholder="Type your answer here..."
                             rows={4}
-                            className="mt-2"
+                            className="w-full"
                           />
                         </div>
-                      </div>
-
-                      {error && (
-                        <Alert variant="destructive">
-                          <AlertCircle className="h-4 w-4" />
-                          <AlertDescription>{error}</AlertDescription>
-                        </Alert>
                       )}
+                    </div>
 
-                      <div className="flex justify-between">
-                        <Button 
-                          onClick={handleFinish} 
-                          variant="secondary" 
-                          disabled={isSubmitting}
-                        >
-                          Finish
-                        </Button>
-                        <Button 
-                          onClick={handleAnswerSubmit} 
-                          disabled={isSubmitting}
-                          className="min-w-[120px]"
-                        >
-                          {isSubmitting ? (
-                            <div className="flex items-center space-x-2">
-                              <span>Submitting</span>
-                              <div className="animate-spin">⏳</div>
-                            </div>
-                          ) : (
-                            currentIndex === conversation.length - 1 ? 'Complete' : 'Continue'
-                          )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              </AnimatePresence>
-              <FAQ />
-            </>
-          )}
+                    {error && (
+                      <Alert variant="destructive">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    )}
+
+                    <div className="flex justify-between">
+                      <Button 
+                        onClick={handleFinish} 
+                        variant="secondary" 
+                        disabled={isSubmitting}
+                      >
+                        Finish
+                      </Button>
+                      <Button 
+                        onClick={handleAnswerSubmit} 
+                        disabled={isSubmitting || !isValidIndex(currentIndex, conversation)}
+                        className="min-w-[120px]"
+                      >
+                        {isSubmitting ? (
+                          <div className="flex items-center space-x-2">
+                            <span>Submitting</span>
+                            <div className="animate-spin">⏳</div>
+                          </div>
+                        ) : 'Continue'}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          <FAQ />
         </>
       )}
       {showCelebration && (
@@ -480,3 +630,5 @@ export function KnowledgeBaseCreation({ agentId, onComplete }: { agentId: string
     </div>
   )
 }
+
+export { KnowledgeBaseCreation }

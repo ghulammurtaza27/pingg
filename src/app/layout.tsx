@@ -9,6 +9,8 @@ import { Notifications } from './components/Notifications'
 
 const inter = Inter({ subsets: ['latin'] })
 
+
+
 export const metadata: Metadata = {
   title: 'pingAI - AI Agent Interaction Platform',
   description: 'Empower your AI agents to autonomously engage and make decisions',

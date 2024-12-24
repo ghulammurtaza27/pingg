@@ -11,7 +11,7 @@ import { Alert, AlertDescription } from "@/app/components/ui/alert"
 interface Request {
   id: string
   summary: string
-  status: string
+  status: 'pending' | 'completed' | 'approved'
   relevanceScore: number
   createdAt: string
   senderAgent: { name: string }
@@ -71,7 +71,7 @@ export function RequestsOverview({ detailed = false }: { detailed?: boolean }) {
               <p className="font-medium">{request.summary}</p>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <span>{request.senderAgent.name} → {request.recipientAgent.name}</span>
-                <Badge variant={request.status === 'pending' ? 'secondary' : 'success'}>
+                <Badge variant={request.status === 'pending' ? 'secondary' : 'default'}>
                   {request.status}
                 </Badge>
                 <Badge variant="outline">

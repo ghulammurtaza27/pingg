@@ -1,14 +1,15 @@
+// AgentDetails.tsx
 "use client"
 
 import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/app/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { AlertCircle, ArrowLeft } from "lucide-react"
 
-type Agent = {
+interface Agent {
   id: string
   name: string
   status?: 'active' | 'inactive'
@@ -18,7 +19,11 @@ type Agent = {
   updatedAt: string
 }
 
-export default function AgentDetails({ id }: { id: string }) {
+interface AgentDetailsProps {
+  id: string
+}
+
+export default function AgentDetails({ id }: AgentDetailsProps) {
   const { data: session, status: authStatus } = useSession()
   const router = useRouter()
   const [agent, setAgent] = useState<Agent | null>(null)
@@ -32,27 +37,26 @@ export default function AgentDetails({ id }: { id: string }) {
   }, [authStatus, router])
 
   useEffect(() => {
+    const fetchAgentDetails = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/agents/${id}`)
+        if (!response.ok) {
+          throw new Error("Failed to fetch agent details")
+        }
+        const data = await response.json()
+        setAgent(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch agent details")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
     if (session && id) {
       fetchAgentDetails()
     }
   }, [session, id])
-
-  const fetchAgentDetails = async () => {
-    try {
-      setIsLoading(true)
-      const response = await fetch(`/api/agents/${id}`)
-      if (response.ok) {
-        const data = await response.json()
-        setAgent(data)
-      } else {
-        throw new Error("Failed to fetch agent details")
-      }
-    } catch {
-      setError("Failed to fetch agent details")
-    } finally {
-      setIsLoading(false)
-    }
-  }
 
   if (authStatus === "loading" || !session || isLoading) {
     return <div className="container mx-auto py-8">Loading...</div>
@@ -65,12 +69,12 @@ export default function AgentDetails({ id }: { id: string }) {
         onClick={() => router.push("/agents")}
         className="mb-6"
       >
-        <ArrowLeft className="mr-2 h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 mr-2" />
         Back to Agents
       </Button>
 
       {error && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="mb-6">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -121,4 +125,4 @@ export default function AgentDetails({ id }: { id: string }) {
       )}
     </div>
   )
-} 
+}

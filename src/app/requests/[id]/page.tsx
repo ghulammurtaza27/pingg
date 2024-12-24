@@ -3,12 +3,14 @@ import { RequestDetails } from './RequestDetails'
 import { RequestAnalysis } from './RequestAnalysis'
 import { Loading } from '../../components/Loading'
 
-export default function RequestPage({ 
-  params 
-}: { 
-  params: { id: string } 
-}) {
-  const { id } = params
+interface PageProps {
+  params: Promise<{
+    id: string
+  }>
+}
+
+export default async function RequestPage({ params }: PageProps) {
+  const { id } = await params
 
   return (
     <div className="space-y-8 p-6">

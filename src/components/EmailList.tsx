@@ -4,11 +4,49 @@ import React, { memo, useState } from 'react';
 import { decode } from 'html-entities';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 
-// Utility functions remain the same
-const getHeader = (headers, name) => 
+interface EmailHeader {
+  name: string;
+  value: string;
+}
+
+interface EmailPayload {
+  headers: EmailHeader[];
+  body?: {
+    data: string;
+  };
+  parts?: Array<{
+    mimeType: string;
+    body: {
+      data: string;
+    };
+  }>;
+}
+
+interface Email {
+  id: string;
+  payload: EmailPayload;
+}
+
+interface IntegrateButtonProps {
+  email: Email;
+}
+
+interface EmailContentProps {
+  email: Email;
+  isExpanded: boolean;
+}
+
+interface EmailHeaderProps {
+  headers: EmailHeader[];
+  isExpanded: boolean;
+  onToggle: () => void;
+}
+
+// Utility functions with type annotations
+const getHeader = (headers: EmailHeader[], name: string): string => 
   headers.find(header => header.name === name)?.value || '';
 
-const cleanEmailContent = (content) => {
+const cleanEmailContent = (content: string): string => {
   if (!content) return '';
   try {
     let cleanText = decode(content);
@@ -25,7 +63,7 @@ const cleanEmailContent = (content) => {
   }
 };
 
-const decodeBase64 = (str) => {
+const decodeBase64 = (str: string): string => {
   if (!str) return '';
   try {
     const base64 = str
@@ -51,7 +89,7 @@ const decodeBase64 = (str) => {
 };
 
 // Integrate Button Component
-const IntegrateButton = memo(({ email }) => {
+const IntegrateButton = memo(({ email }: IntegrateButtonProps) => {
   const [statusMessage, setStatusMessage] = useState('');
 
   const handleIntegrateEmail = async () => {
@@ -133,12 +171,12 @@ const IntegrateButton = memo(({ email }) => {
 IntegrateButton.displayName = 'IntegrateButton';
 
 // Email content component
-const EmailContent = memo(({ email, isExpanded }) => {
+const EmailContent = memo(({ email, isExpanded }: EmailContentProps) => {
   if (!email?.payload || !isExpanded) {
     return null;
   }
 
-  const getContent = (payload) => {
+  const getContent = (payload: EmailPayload): string => {
     try {
       if (!payload) {
         return '';
@@ -183,7 +221,7 @@ const EmailContent = memo(({ email, isExpanded }) => {
 EmailContent.displayName = 'EmailContent';
 
 // Header component
-const EmailHeader = memo(({ headers, isExpanded, onToggle }) => (
+const EmailHeader = memo(({ headers, isExpanded, onToggle }: EmailHeaderProps) => (
   <div 
     className="cursor-pointer space-y-2" 
     onClick={onToggle}
@@ -220,15 +258,18 @@ const EmailHeader = memo(({ headers, isExpanded, onToggle }) => (
 
 EmailHeader.displayName = 'EmailHeader';
 
-// Main EmailList component
-const EmailList = ({ emails }) => {
-  const [expandedEmailId, setExpandedEmailId] = useState(null);
+interface EmailListProps {
+  emails: Email[];
+}
+
+const EmailList = ({ emails }: EmailListProps) => {
+  const [expandedEmailId, setExpandedEmailId] = useState<string | null>(null);
 
   if (!emails?.length) {
     return <p className="text-center text-gray-400">No emails to display.</p>;
   }
 
-  const toggleEmail = (emailId) => {
+  const toggleEmail = (emailId: string): void => {
     setExpandedEmailId(expandedEmailId === emailId ? null : emailId);
   };
 
