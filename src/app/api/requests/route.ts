@@ -4,36 +4,35 @@ import { nextAuthConfig } from "@/lib/auth"
 import prisma from "@/lib/prisma"
 import { pusherServer } from '@/lib/pusher'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const { searchParams } = new URL(request.url)
+    const recipientId = searchParams.get('recipientId')
+    
     const session = await getServerSession(nextAuthConfig)
     if (!session?.user?.email) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Unauthorized' 
+      }), { status: 401 })
     }
 
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    })
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 })
-    }
-
-    // Get user's agents
-    const userAgents = await prisma.agent.findMany({
-      where: { userId: user.id },
+      where: { email: session.user.email },
       select: { id: true }
     })
 
-    const agentIds = userAgents.map(agent => agent.id)
+    if (!user) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'User not found' 
+      }), { status: 404 })
+    }
 
-    // Fetch requests where user's agents are either sender or recipient
     const requests = await prisma.request.findMany({
       where: {
-        OR: [
-          { senderAgentId: { in: agentIds } },
-          { recipientAgentId: { in: agentIds } }
-        ]
+        userId: user.id,
+        ...(recipientId ? { recipientAgentId: recipientId } : {})
       },
       include: {
         senderAgent: {
@@ -48,17 +47,17 @@ export async function GET() {
       }
     })
 
-    return NextResponse.json({ 
+    return new Response(JSON.stringify({ 
       success: true, 
       requests 
-    })
-
+    }))
+    
   } catch (error) {
-    console.error('API Error:', error)
-    return NextResponse.json({ 
+    console.error('Error in requests API:', error)
+    return new Response(JSON.stringify({ 
       success: false, 
-      error: "Failed to fetch requests" 
-    }, { status: 500 })
+      error: 'Failed to fetch requests' 
+    }), { status: 500 })
   }
 }
 

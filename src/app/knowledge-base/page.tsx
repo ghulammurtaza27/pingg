@@ -47,7 +47,8 @@ export default function KnowledgeBasePage() {
       const data = await response.json()
       
       if (Array.isArray(data)) {
-        setAgents(data)
+        const filteredAgents = data.filter(agent => agent.type !== 'email')
+        setAgents(filteredAgents)
       } else {
         throw new Error("Invalid response format")
       }

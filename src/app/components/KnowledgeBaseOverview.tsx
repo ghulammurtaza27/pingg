@@ -14,6 +14,7 @@ interface Agent {
   id: string
   name: string
   status?: 'active' | 'inactive'
+  type: string
 }
 
 interface KnowledgeBase {
@@ -69,16 +70,20 @@ export function KnowledgeBaseOverview({ detailed = false }: { detailed?: boolean
    
 
       if (Array.isArray(data)) {
-        const formattedAgents = data.map(agent => ({
-          id: agent.id,
-          name: agent.name
-        }))
+        const formattedAgents = data
+          .filter(agent => agent.type !== 'email')
+          .map(agent => ({
+            id: agent.id,
+            name: agent.name,
+            status: agent.status,
+            type: agent.type
+          }))
   
         setAgents(formattedAgents)
         
-        if (data.length > 0) {
+        if (formattedAgents.length > 0) {
  
-          setSelectedAgentId(data[0].id)
+          setSelectedAgentId(formattedAgents[0].id)
         } else {
 
           setLoading(false)

@@ -13,7 +13,7 @@ import { AlertCircle, CheckCircle2 } from 'lucide-react'
 type Agent = {
   id: string
   name: string
-  type: 'sales' | 'decision-maker'
+  type: 'sales' | 'decision-maker' | 'email' | 'system'
 }
 
 export function AgentManagement() {
@@ -28,7 +28,8 @@ export function AgentManagement() {
       const response = await fetch('/api/agents')
       if (!response.ok) throw new Error('Failed to fetch agents')
       const data = await response.json()
-      setAgents(data)
+      const filteredAgents = data.filter((agent: Agent) => agent.type !== 'email')
+      setAgents(filteredAgents)
     } catch (error) {
       console.error('Error fetching agents:', error)
       setAlert({ message: "Failed to fetch agents", type: "error" })

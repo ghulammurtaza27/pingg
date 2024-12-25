@@ -138,6 +138,7 @@ export async function POST(request: Request) {
       }, 404);
     }
 
+    // Create or get email agent
     const emailAgent = await prisma.agent.upsert({
       where: {
         userIdType: {
@@ -152,8 +153,18 @@ export async function POST(request: Request) {
       },
       update: {}
     });
-    
-    const recipientAgent = await prisma.agent.upsert({
+
+    // Find default agent first
+    const defaultAgent = await prisma.agent.findFirst({
+      where: {
+        userId: user.id,
+        isDefault: true,
+        type: { not: 'email' } // Exclude email agents
+      }
+    });
+
+    // If no default agent exists, create or get system agent
+    const recipientAgent = defaultAgent || await prisma.agent.upsert({
       where: {
         userIdType: {
           userId: user.id,

@@ -9,6 +9,7 @@ import { Loader2, AlertCircle, ArrowRight, ArrowLeftRight, ChevronDown, ChevronU
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
 
 type Request = {
   id: string
@@ -25,21 +26,56 @@ type Request = {
   }
 }
 
+type Agent = {
+  id: string
+  name: string
+  type: string
+}
+
 export default function RequestsList() {
   const { data: session } = useSession()
   const [requests, setRequests] = useState<Request[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedRequests, setExpandedRequests] = useState<Set<string>>(new Set())
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('')
 
   useEffect(() => {
-    fetchRequests()
+    fetchAgents()
   }, [])
+
+  useEffect(() => {
+    if (selectedAgentId) {
+      fetchRequests()
+    }
+  }, [selectedAgentId])
+
+  const fetchAgents = async () => {
+    try {
+      const response = await fetch('/api/agents')
+      const data = await response.json()
+      const filteredAgents = data.filter((agent: Agent) => agent.type !== 'email')
+      setAgents(filteredAgents)
+      if (filteredAgents.length > 0) {
+        setSelectedAgentId(filteredAgents[0].id)
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error)
+      setError('Failed to fetch agents')
+    }
+  }
 
   const fetchRequests = async () => {
     try {
-      const response = await fetch('/api/requests')
+      setLoading(true)
+      const url = selectedAgentId 
+        ? `/api/requests?recipientId=${selectedAgentId}`
+        : '/api/requests'
+        
+      const response = await fetch(url)
       const data = await response.json()
+      
       if (data.success) {
         setRequests(data.requests)
       } else {
@@ -117,7 +153,27 @@ export default function RequestsList() {
   return (
     <Card className="h-[calc(100vh-220px)] flex flex-col mt-[33px]">
       <CardHeader className="pb-3 shrink-0">
-        <CardTitle>Requests Overview</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle>Requests Overview</CardTitle>
+          <Select
+            value={selectedAgentId}
+            onValueChange={setSelectedAgentId}
+          >
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select an agent" />
+            </SelectTrigger>
+            <SelectContent>
+              {agents.map((agent) => (
+                <SelectItem 
+                  key={agent.id} 
+                  value={agent.id}
+                >
+                  {agent.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent className="flex-1 min-h-0">
         <Tabs defaultValue="relevant" className="h-full flex flex-col">

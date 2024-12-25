@@ -6,14 +6,16 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/app/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/app/components/ui/card"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
-import { AlertCircle, CheckCircle2, Plus } from "lucide-react"
+import { AlertCircle, CheckCircle2, Plus, Star } from "lucide-react"
 
 type Agent = {
   id: string
   name: string
-  status: 'active' | 'inactive'
+  status: string | null
   type: string
-  lastActive: string
+  isDefault: boolean
+  createdAt: string
+  updatedAt: string
 }
 
 type AlertType = 'success' | 'error'
@@ -23,6 +25,7 @@ export default function AgentsPage() {
   const router = useRouter()
   const [agents, setAgents] = useState<Agent[]>([])
   const [alert, setAlert] = useState<{ message: string; type: AlertType } | null>(null)
+  const [isUpdating, setIsUpdating] = useState(false)
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -38,15 +41,39 @@ export default function AgentsPage() {
 
   const fetchAgents = async () => {
     try {
-      const response = await fetch("/api/agents")
+      const response = await fetch("/api/agents/with-default")
       if (response.ok) {
         const data = await response.json()
-        setAgents(data)
+        const filteredAgents = data.filter((agent: Agent) => agent.type !== 'email')
+        setAgents(filteredAgents)
       } else {
         throw new Error("Failed to fetch agents")
       }
     } catch {
       setAlert({ message: "Failed to fetch agents", type: 'error' })
+    }
+  }
+
+  const setDefaultAgent = async (agentId: string) => {
+    if (isUpdating) return
+    setIsUpdating(true)
+    
+    try {
+      const response = await fetch("/api/agents/set-default", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId }),
+      })
+
+      if (!response.ok) throw new Error("Failed to update default agent")
+
+      // Fetch fresh data instead of updating locally
+      await fetchAgents()
+      setAlert({ message: "Default agent updated", type: 'success' })
+    } catch (error) {
+      setAlert({ message: "Failed to update default agent", type: 'error' })
+    } finally {
+      setIsUpdating(false)
     }
   }
 
@@ -66,10 +93,32 @@ export default function AgentsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {agents.map((agent) => (
-          <Card key={agent.id} className="hover:shadow-lg transition-shadow">
+          <Card 
+            key={agent.id} 
+            className={`relative hover:shadow-lg transition-shadow ${
+              agent.isDefault ? 'ring-2 ring-primary border-primary' : ''
+            }`}
+          >
             <CardHeader>
-              <CardTitle>{agent.name}</CardTitle>
-              <CardDescription>Type: {agent.type}</CardDescription>
+              <div className="flex justify-between items-start">
+                <div>
+                  <CardTitle>{agent.name}</CardTitle>
+                  <CardDescription>Type: {agent.type}</CardDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDefaultAgent(agent.id)}
+                  disabled={isUpdating || agent.isDefault}
+                  className={`${agent.isDefault ? 'text-primary' : 'hover:text-primary'}`}
+                >
+                  <Star 
+                    className={`h-5 w-5 transition-all ${
+                      agent.isDefault ? 'fill-current' : ''
+                    }`} 
+                  />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
@@ -82,11 +131,16 @@ export default function AgentsPage() {
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-muted-foreground">Last Active</span>
+                  <span className="text-sm text-muted-foreground">Created</span>
                   <span className="text-sm">
-                    {agent.lastActive ? new Date(agent.lastActive).toLocaleDateString() : 'Never'}
+                    {new Date(agent.createdAt).toLocaleDateString()}
                   </span>
                 </div>
+                {agent.isDefault && (
+                  <div className="flex items-center justify-center mt-2 bg-primary/10 py-1 rounded-md">
+                    <span className="text-xs text-primary font-medium">Default Agent</span>
+                  </div>
+                )}
               </div>
             </CardContent>
             <CardFooter>

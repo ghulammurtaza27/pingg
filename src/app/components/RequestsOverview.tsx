@@ -8,6 +8,13 @@ import { Badge } from "@/app/components/ui/badge"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
+
+interface Agent {
+  id: string
+  name: string
+  type: string
+}
 
 interface Request {
   id: string
@@ -24,14 +31,43 @@ export function RequestsOverview({ detailed = false }: { detailed?: boolean }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [requests, setRequests] = useState<Request[]>([])
+  const [agents, setAgents] = useState<Agent[]>([])
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('')
 
   useEffect(() => {
-    fetchRequests()
+    fetchAgents()
   }, [])
+
+  useEffect(() => {
+    if (selectedAgentId) {
+      fetchRequests()
+    }
+  }, [selectedAgentId])
+
+  async function fetchAgents() {
+    try {
+      const response = await fetch('/api/agents')
+      const data = await response.json()
+      // Filter out email agents
+      const filteredAgents = data.filter((agent: Agent) => agent.type !== 'email')
+      setAgents(filteredAgents)
+      if (filteredAgents.length > 0) {
+        setSelectedAgentId(filteredAgents[0].id)
+      }
+    } catch (error) {
+      console.error('Error fetching agents:', error)
+      setError('Failed to fetch agents')
+    }
+  }
 
   async function fetchRequests() {
     try {
-      const response = await fetch("/api/requests")
+      setLoading(true)
+      const url = selectedAgentId 
+        ? `/api/requests?recipientId=${selectedAgentId}`
+        : '/api/requests'
+        
+      const response = await fetch(url)
       const data = await response.json()
       
       if (!response.ok) {
@@ -95,6 +131,28 @@ export function RequestsOverview({ detailed = false }: { detailed?: boolean }) {
 
   return (
     <div className="space-y-4 bg-[#0c0c0c] rounded-lg p-4">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-xl font-semibold">Requests Overview</h2>
+        <Select
+          value={selectedAgentId}
+          onValueChange={setSelectedAgentId}
+        >
+          <SelectTrigger className="w-[200px] bg-[#1c2432] border-0">
+            <SelectValue placeholder="Select an agent" />
+          </SelectTrigger>
+          <SelectContent>
+            {agents.map((agent) => (
+              <SelectItem 
+                key={agent.id} 
+                value={agent.id}
+              >
+                {agent.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <Tabs defaultValue="relevant" className="space-y-4">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="relevant">

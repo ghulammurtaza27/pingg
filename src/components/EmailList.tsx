@@ -6,7 +6,6 @@ import { ChevronDown, ChevronUp, Mail, Calendar, User } from 'lucide-react';
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
-import { cn } from "@/lib/utils";
 
 interface EmailHeader {
   name: string;

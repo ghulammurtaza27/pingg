@@ -5,7 +5,6 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
 }
 
 model Account {
@@ -68,6 +67,7 @@ model Agent {
   name      String
   type      String
   status    String?
+  isDefault Boolean   @default(false)
   userId    String
   user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime  @default(now())
@@ -76,6 +76,7 @@ model Agent {
   receivedRequests Request[] @relation("RecipientAgent")
   knowledgeBaseQuestions KnowledgeBaseQuestion[]
   knowledgeBases KnowledgeBase[]
+  
   @@unique([userId, type], name: "userIdType")
 }
 
