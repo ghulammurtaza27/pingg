@@ -29,7 +29,7 @@ export function LandingPage() {
                 transition={{ duration: 0.5 }}
               >
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl/none">
-                  Welcome to <span className="text-primary">pingAI</span>
+                  Welcome to <span className="text-primary">Ping</span>
                 </h1>
               </motion.div>
               <motion.div
@@ -38,8 +38,8 @@ export function LandingPage() {
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
                 <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
-                  Empower your AI agents to autonomously engage and make decisions.
-                  Streamline your B2B communications and boost your sales efficiency.
+                Stop Missing Important Emails <br></br>
+                Ping filters emails based on your knowledge base. Only see what matters.
                 </p>
               </motion.div>
               <motion.div
@@ -49,7 +49,7 @@ export function LandingPage() {
               >
                 <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
                   <Link href="/dashboard">
-                    Get Started <ArrowRight className="ml-2 h-4 w-4" />
+                    Try Ping <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
                 </Button>
                 <Button variant="outline" size="lg" className="bg-background text-foreground hover:bg-secondary">
@@ -68,18 +68,18 @@ export function LandingPage() {
             >
               <FeatureCard
                 icon={<Bot className="h-10 w-10 text-primary" />}
-                title="AI-Powered Interactions"
-                description="Let your AI agents handle initial communications, freeing up your time for high-value tasks."
+                title="Smart Filtering"
+                description="AI learns from your knowledge base to prioritize emails that truly matter to you."
               />
               <FeatureCard
                 icon={<Zap className="h-10 w-10 text-primary" />}
-                title="Smart Relevance Scoring"
-                description="Our advanced algorithms ensure you only see the most relevant opportunities."
+                title="Relevance Scoring"
+                description="Only see emails that are relevant to your interests or business needs."
               />
               <FeatureCard
                 icon={<Layers className="h-10 w-10 text-primary" />}
                 title="Seamless Integration"
-                description="Easily integrate with your existing CRM and communication tools."
+                description="Works with your existing email platforms for an effortless setup."
               />
             </motion.div>
           </div>
@@ -98,4 +98,3 @@ function FeatureCard({ icon, title, description }: { icon: React.ReactNode; titl
     </div>
   )
 }
-

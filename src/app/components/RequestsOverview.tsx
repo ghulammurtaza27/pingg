@@ -7,6 +7,7 @@ import { Card } from "@/app/components/ui/card"
 import { Badge } from "@/app/components/ui/badge"
 import { Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 interface Request {
   id: string
@@ -62,36 +63,66 @@ export function RequestsOverview({ detailed = false }: { detailed?: boolean }) {
     return <p className="text-muted-foreground">No requests found</p>
   }
 
-  return (
-    <div className="space-y-4 bg-[#0c0c0c] rounded-lg">
-      {requests.slice(0, detailed ? undefined : 5).map((request) => (
-        <Card key={request.id} className="p-4 bg-[#1c2432] border-0">
-          <div className="flex items-start justify-between">
-            <div className="space-y-1">
-              <p className="font-medium text-gray-200">{request.summary}</p>
-              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <span>{request.senderAgent.name} → {request.recipientAgent.name}</span>
-                <Badge variant="secondary" className="bg-[#2a3441] text-yellow-500">
-                  {request.status}
-                </Badge>
-                <Badge variant="outline" className="border-gray-700">
-                  {(request.relevanceScore * 100).toFixed(0)}% relevant
-                </Badge>
-              </div>
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.push(`/requests/${request.id}`)}
-              className="hover:bg-[#2a3441]"
-            >
-              View
-            </Button>
+  const relevantRequests = requests.filter(req => req.relevanceScore >= 0.5)
+  const lowRelevanceRequests = requests.filter(req => req.relevanceScore < 0.5)
+  
+  const RequestCard = ({ request }: { request: Request }) => (
+    <Card key={request.id} className="p-4 bg-[#1c2432] border-0">
+      <div className="flex items-start justify-between">
+        <div className="space-y-1">
+          <p className="font-medium text-gray-200">{request.summary}</p>
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <span>{request.senderAgent.name} → {request.recipientAgent.name}</span>
+            <Badge variant="secondary" className="bg-[#2a3441] text-yellow-500">
+              {request.status}
+            </Badge>
+            <Badge variant="outline" className="border-gray-700">
+              {(request.relevanceScore * 100).toFixed(0)}% relevant
+            </Badge>
           </div>
-        </Card>
-      ))}
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push(`/requests/${request.id}`)}
+          className="hover:bg-[#2a3441]"
+        >
+          View
+        </Button>
+      </div>
+    </Card>
+  )
+
+  return (
+    <div className="space-y-4 bg-[#0c0c0c] rounded-lg p-4">
+      <Tabs defaultValue="relevant" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="relevant">
+            Relevant ({relevantRequests.length})
+          </TabsTrigger>
+          <TabsTrigger value="low-relevance">
+            Low Relevance ({lowRelevanceRequests.length})
+          </TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="relevant" className="space-y-4">
+          {relevantRequests
+            .slice(0, detailed ? undefined : 5)
+            .map((request) => (
+              <RequestCard key={request.id} request={request} />
+            ))}
+        </TabsContent>
+
+        <TabsContent value="low-relevance" className="space-y-4">
+          {lowRelevanceRequests
+            .slice(0, detailed ? undefined : 5)
+            .map((request) => (
+              <RequestCard key={request.id} request={request} />
+            ))}
+        </TabsContent>
+      </Tabs>
       
-      {!detailed && requests.length > 5 && (
+      {!detailed && (relevantRequests.length > 5 || lowRelevanceRequests.length > 5) && (
         <Button
           variant="outline"
           className="w-full border-gray-700 hover:bg-[#2a3441]"

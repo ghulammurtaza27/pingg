@@ -2,7 +2,11 @@
 
 import React, { memo, useState } from 'react';
 import { decode } from 'html-entities';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, Mail, Calendar, User } from 'lucide-react';
+import { Button } from "@/app/components/ui/button";
+import { Card, CardContent } from "@/app/components/ui/card";
+import { Badge } from "@/app/components/ui/badge";
+import { cn } from "@/lib/utils";
 
 interface EmailHeader {
   name: string;
@@ -156,14 +160,19 @@ const IntegrateButton = memo(({ email }: IntegrateButtonProps) => {
   };
 
   return (
-    <div className="mt-4">
-      <button 
-        onClick={handleIntegrateEmail} 
-        className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition-colors"
+    <div className="mt-4 flex items-center gap-3">
+      <Button 
+        onClick={handleIntegrateEmail}
+        variant="default"
+        className="w-full sm:w-auto"
       >
         Integrate Email
-      </button>
-      {statusMessage && <p className="text-green-500 mt-2">{statusMessage}</p>}
+      </Button>
+      {statusMessage && (
+        <Badge variant={statusMessage.includes('Error') ? 'destructive' : 'secondary'}>
+          {statusMessage}
+        </Badge>
+      )}
     </div>
   );
 });
@@ -210,10 +219,14 @@ const EmailContent = memo(({ email, isExpanded }: EmailContentProps) => {
   if (!content) return null;
 
   return (
-    <div className="mt-4 bg-gray-900 p-4 rounded-lg">
-      <pre className="whitespace-pre-wrap break-words font-sans text-base text-gray-300">
-        {content}
-      </pre>
+    <div className="mt-4">
+      <Card>
+        <CardContent className="p-4">
+          <pre className="whitespace-pre-wrap break-words font-sans text-sm text-muted-foreground">
+            {content}
+          </pre>
+        </CardContent>
+      </Card>
     </div>
   );
 });

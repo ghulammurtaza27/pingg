@@ -3,11 +3,12 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { Card } from "@/app/components/ui/card"
+import { Card, CardHeader, CardTitle, CardContent } from "@/app/components/ui/card"
 import { Badge } from "@/app/components/ui/badge"
 import { Loader2, AlertCircle, ArrowRight, ArrowLeftRight, ChevronDown, ChevronUp } from "lucide-react"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 type Request = {
   id: string
@@ -79,10 +80,13 @@ export default function RequestsList() {
     return 'bg-red-500/10 text-red-500 border-red-500/20'
   }
 
+  const relevantRequests = requests.filter(req => req.relevanceScore >= 0.5)
+  const lowRelevanceRequests = requests.filter(req => req.relevanceScore < 0.5)
+
   if (loading) {
     return (
       <div className="h-[calc(100vh-120px)] flex justify-center items-center">
-        <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -101,95 +105,204 @@ export default function RequestsList() {
   if (requests.length === 0) {
     return (
       <div className="h-[calc(100vh-120px)] flex items-center justify-center">
-        <div className="text-center py-12 bg-[#1c2432] rounded-lg w-full max-w-2xl">
-          <p className="text-muted-foreground text-lg">No requests found</p>
-        </div>
+        <Card className="w-full max-w-2xl">
+          <div className="text-center py-12">
+            <p className="text-muted-foreground text-lg">No requests found</p>
+          </div>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="h-[calc(100vh-120px)] flex flex-col max-w-4xl mx-auto">
-      <div className="flex-1 overflow-y-auto pr-4 space-y-4 scrollbar-thin scrollbar-thumb-gray-700 
-                    scrollbar-track-transparent hover:scrollbar-thumb-gray-600">
-        {requests.map((request) => (
-          <Card 
-            key={request.id} 
-            className="p-6 bg-[#1c2432] border-0 hover:bg-[#232b3b] transition-colors duration-200"
+    <Card className="h-[calc(100vh-220px)] flex flex-col mt-[33px]">
+      <CardHeader className="pb-3 shrink-0">
+        <CardTitle>Requests Overview</CardTitle>
+      </CardHeader>
+      <CardContent className="flex-1 min-h-0">
+        <Tabs defaultValue="relevant" className="h-full flex flex-col">
+          <TabsList className="grid w-full grid-cols-2 shrink-0">
+            <TabsTrigger value="relevant">
+              Relevant ({relevantRequests.length})
+            </TabsTrigger>
+            <TabsTrigger value="low-relevance">
+              Low Relevance ({lowRelevanceRequests.length})
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent 
+            value="relevant" 
+            className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 
+                      scrollbar-track-transparent hover:scrollbar-thumb-gray-600 pt-4"
           >
-            <div className="space-y-4">
-              {/* Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="p-0 hover:bg-transparent"
-                    onClick={() => toggleExpand(request.id)}
+            <div className="space-y-4 pr-4">
+              {relevantRequests.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">No relevant requests found</p>
+              ) : (
+                relevantRequests.map((request) => (
+                  <Card 
+                    key={request.id} 
+                    className="transition-all duration-200 hover:shadow-lg"
                   >
-                    {expandedRequests.has(request.id) ? (
-                      <ChevronUp className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
-                    )}
-                  </Button>
-                  <div className="flex items-center text-sm">
-                    <span className="font-medium text-gray-200">{request.senderAgent.name}</span>
-                    <ArrowLeftRight className="mx-2 h-4 w-4 text-gray-500" />
-                    <span className="font-medium text-gray-200">{request.recipientAgent.name}</span>
-                  </div>
-                  <Badge variant="secondary" className={`${getStatusColor(request.status)}`}>
-                    {request.status}
-                  </Badge>
-                </div>
-                <Badge 
-                  variant="outline" 
-                  className={`${getRelevanceColor(request.relevanceScore)}`}
-                >
-                  {(request.relevanceScore * 100).toFixed(0)}% relevant
-                </Badge>
-              </div>
+                    <div className="p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 hover:bg-transparent"
+                            onClick={() => toggleExpand(request.id)}
+                          >
+                            {expandedRequests.has(request.id) ? (
+                              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </Button>
+                          <div className="flex items-center text-sm">
+                            <span className="font-medium">{request.senderAgent.name}</span>
+                            <ArrowLeftRight className="mx-2 h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{request.recipientAgent.name}</span>
+                          </div>
+                          <Badge variant="secondary" className={getStatusColor(request.status)}>
+                            {request.status}
+                          </Badge>
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className={getRelevanceColor(request.relevanceScore)}
+                        >
+                          {(request.relevanceScore * 100).toFixed(0)}% relevant
+                        </Badge>
+                      </div>
 
-              {/* Content */}
-              {expandedRequests.has(request.id) && (
-                <div className="space-y-4 pl-4 border-l-2 border-[#2a3441]">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-200 mb-2">Summary</h3>
-                    <p className="text-sm text-gray-400 leading-relaxed">{request.summary}</p>
-                  </div>
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-200 mb-2">Considerations</h3>
-                    <p className="text-sm text-gray-400 leading-relaxed">{request.considerations}</p>
-                  </div>
-                </div>
+                      {expandedRequests.has(request.id) && (
+                        <div className="space-y-4 pl-4 border-l-2 border-border">
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Summary</h3>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{request.summary}</p>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Considerations</h3>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{request.considerations}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2">
+                        <p className="text-xs text-muted-foreground">
+                          Created {new Date(request.createdAt).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                        <Link href={`/requests/${request.id}`}>
+                          <Button 
+                            variant="ghost" 
+                            className="group"
+                          >
+                            View Details
+                            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </Card>
+                ))
               )}
-
-              {/* Footer - Always visible */}
-              <div className="flex items-center justify-between pt-2">
-                <p className="text-xs text-gray-500">
-                  Created {new Date(request.createdAt).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </p>
-                <Link href={`/requests/${request.id}`}>
-                  <Button 
-                    variant="ghost" 
-                    className="text-blue-400 hover:text-blue-300 hover:bg-[#2a3441]
-                             transition-all duration-200 group"
-                  >
-                    View Details
-                    <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                  </Button>
-                </Link>
-              </div>
             </div>
-          </Card>
-        ))}
-      </div>
-    </div>
+          </TabsContent>
+
+          <TabsContent 
+            value="low-relevance" 
+            className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 
+                      scrollbar-track-transparent hover:scrollbar-thumb-gray-600 pt-4"
+          >
+            <div className="space-y-4 pr-4">
+              {lowRelevanceRequests.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">No low relevance requests found</p>
+              ) : (
+                lowRelevanceRequests.map((request) => (
+                  <Card 
+                    key={request.id} 
+                    className="transition-all duration-200 hover:shadow-lg"
+                  >
+                    <div className="p-6 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="p-0 hover:bg-transparent"
+                            onClick={() => toggleExpand(request.id)}
+                          >
+                            {expandedRequests.has(request.id) ? (
+                              <ChevronUp className="h-5 w-5 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                            )}
+                          </Button>
+                          <div className="flex items-center text-sm">
+                            <span className="font-medium">{request.senderAgent.name}</span>
+                            <ArrowLeftRight className="mx-2 h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">{request.recipientAgent.name}</span>
+                          </div>
+                          <Badge variant="secondary" className={getStatusColor(request.status)}>
+                            {request.status}
+                          </Badge>
+                        </div>
+                        <Badge 
+                          variant="outline" 
+                          className={getRelevanceColor(request.relevanceScore)}
+                        >
+                          {(request.relevanceScore * 100).toFixed(0)}% relevant
+                        </Badge>
+                      </div>
+
+                      {expandedRequests.has(request.id) && (
+                        <div className="space-y-4 pl-4 border-l-2 border-border">
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Summary</h3>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{request.summary}</p>
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-semibold mb-2">Considerations</h3>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{request.considerations}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-2">
+                        <p className="text-xs text-muted-foreground">
+                          Created {new Date(request.createdAt).toLocaleDateString(undefined, {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </p>
+                        <Link href={`/requests/${request.id}`}>
+                          <Button 
+                            variant="ghost" 
+                            className="group"
+                          >
+                            View Details
+                            <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </Card>
+                ))
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
   )
 }

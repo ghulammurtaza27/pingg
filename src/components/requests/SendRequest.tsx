@@ -3,10 +3,13 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'react-hot-toast'
-import { Loader2, AlertCircle } from "lucide-react"
+import { Loader2, AlertCircle, Send } from "lucide-react"
 import { Alert, AlertDescription } from "@/app/components/ui/alert"
 import { Button } from "@/app/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/app/components/ui/select"
+import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card"
+import { Label } from "@/app/components/ui/label"
+import { Textarea } from "@/app/components/ui/textarea"
 
 interface Agent {
   id: string
@@ -108,22 +111,25 @@ export default function SendRequest() {
 
   if (fetchingAgents) {
     return (
-      <div className="h-[calc(100vh-120px)] flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="container mx-auto py-8 flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+          <p className="text-muted-foreground">Loading agents...</p>
+        </div>
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="h-[calc(100vh-120px)] flex items-center justify-center">
-        <Alert variant="destructive">
+      <div className="container mx-auto py-8">
+        <Alert variant="destructive" className="max-w-2xl mx-auto">
           <AlertCircle className="h-5 w-5" />
           <AlertDescription className="ml-2">{error}</AlertDescription>
           <Button 
             onClick={() => window.location.reload()} 
             variant="outline"
-            className="mt-4 w-full border-gray-700 hover:bg-[#2a3441]"
+            className="mt-4 w-full"
           >
             Try Again
           </Button>
@@ -134,97 +140,98 @@ export default function SendRequest() {
 
   if (agents.length === 0) {
     return (
-      <div className="h-[calc(100vh-120px)] flex items-center justify-center">
-        <p className="text-muted-foreground text-lg">
-          No agents available to send requests to
-        </p>
+      <div className="container mx-auto py-8">
+        <Card className="max-w-2xl mx-auto">
+          <CardContent className="flex flex-col items-center justify-center h-[200px]">
+            <p className="text-muted-foreground text-lg text-center">
+              No agents available to send requests to
+            </p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <form onSubmit={handleSubmit} className="h-[calc(100vh-120px)] p-6 bg-[#0c0c0c]">
-      <div className="space-y-6">
-        <div className="space-y-2">
-          <label className="text-sm font-medium text-gray-200">
-            Select Agent
-          </label>
-          <Select
-            value={formData.recipientAgentId}
-            onValueChange={(value) => {
-              handleChange({
-                target: { name: 'recipientAgentId', value }
-              } as any)
-            }}
-          >
-            <SelectTrigger className="w-full bg-[#0c0c0c] border border-gray-700 text-gray-200">
-              <SelectValue placeholder="Choose an agent..." />
-            </SelectTrigger>
-            <SelectContent className="bg-[#1c2432] border border-gray-700">
-              {agents.map(agent => (
-                <SelectItem 
-                  key={agent.id} 
-                  value={agent.id}
-                  className="text-gray-200 focus:bg-[#2a3441] focus:text-gray-200"
-                >
-                  {agent.name} - Last active: {new Date(agent.lastActive).toLocaleDateString()}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="summary" className="text-sm font-medium text-gray-200">
-            Summary
-          </label>
-          <textarea
-            id="summary"
-            name="summary"
-            value={formData.summary}
-            onChange={handleChange}
-            className="flex min-h-[120px] w-full rounded-lg border border-gray-700 
-                     bg-[#0c0c0c] px-3 py-2 text-base text-gray-200 
-                     placeholder:text-gray-200 focus:border-gray-600
-                     focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
-            placeholder="Brief summary of your request"
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label htmlFor="considerations" className="text-sm font-medium text-gray-200">
-            Considerations
-          </label>
-          <textarea
-            id="considerations"
-            name="considerations"
-            value={formData.considerations}
-            onChange={handleChange}
-            className="flex min-h-[120px] w-full rounded-lg border border-gray-700 
-                     bg-[#0c0c0c] px-3 py-2 text-base text-gray-200 
-                     placeholder:text-gray-200 focus:border-gray-600
-                     focus:ring-0 focus-visible:ring-0 focus-visible:outline-none"
-            placeholder="Any specific considerations or requirements"
-            required
-          />
-        </div>
-
-        <Button
-          type="submit"
-          disabled={loading}
-          className="w-full bg-[#2a3441] hover:bg-[#1c2432] text-gray-200"
-        >
-          {loading ? (
-            <div className="flex items-center justify-center">
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Sending...
+    <div className="container mx-auto py-8">
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Send Request</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="agent">Select Agent</Label>
+              <Select
+                value={formData.recipientAgentId}
+                onValueChange={(value) => {
+                  handleChange({
+                    target: { name: 'recipientAgentId', value }
+                  } as any)
+                }}
+              >
+                <SelectTrigger id="agent" className="w-full">
+                  <SelectValue placeholder="Choose an agent..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {agents.map(agent => (
+                    <SelectItem 
+                      key={agent.id} 
+                      value={agent.id}
+                    >
+                      {agent.name} - Last active: {new Date(agent.lastActive).toLocaleDateString()}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          ) : (
-            'Send Request'
-          )}
-        </Button>
-      </div>
-    </form>
+
+            <div className="space-y-2">
+              <Label htmlFor="summary">Summary</Label>
+              <Textarea
+                id="summary"
+                name="summary"
+                value={formData.summary}
+                onChange={handleChange}
+                placeholder="Brief summary of your request"
+                className="min-h-[120px]"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="considerations">Considerations</Label>
+              <Textarea
+                id="considerations"
+                name="considerations"
+                value={formData.considerations}
+                onChange={handleChange}
+                placeholder="Any specific considerations or requirements"
+                className="min-h-[120px]"
+                required
+              />
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Request
+                </>
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
   )
 } 

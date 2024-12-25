@@ -134,6 +134,34 @@ export function KnowledgeBaseDisplay({
         source: entry.source || 'manual'
       }))
 
+      // Create new knowledge base if it doesn't exist
+      if (!knowledgeBaseId) {
+        const createResponse = await fetch('/api/knowledge-base/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            agentId,
+            entries: updatedEntries
+          })
+        })
+
+        const createData = await createResponse.json()
+
+        if (!createResponse.ok) {
+          throw new Error(createData.error || 'Failed to create knowledge base')
+        }
+
+        // Update local state with new knowledge base
+        setKnowledgeBase(createData.data.knowledgeBase)
+        setEditableEntries(createData.data.knowledgeBase.entries)
+        setShowSaved(true)
+        setTimeout(() => setShowSaved(false), 3000)
+        return
+      }
+
+      // If knowledge base exists, update it
       const response = await fetch('/api/knowledge-base/update', {
         method: 'POST',
         headers: {
@@ -145,12 +173,6 @@ export function KnowledgeBaseDisplay({
           entries: updatedEntries
         })
       })
-
-      // Handle non-JSON responses
-      const contentType = response.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        throw new Error(`Server returned unexpected content type: ${contentType}`);
-      }
 
       const data = await response.json()
 

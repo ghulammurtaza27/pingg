@@ -36,15 +36,53 @@ export async function POST(request: Request) {
 
     const { agentId, knowledgeBaseId, entries }: {
       agentId: string,
-      knowledgeBaseId: string,
+      knowledgeBaseId: string | null,
       entries: KnowledgeBaseEntry[]
     } = body
 
-    if (!agentId || !knowledgeBaseId || !entries) {
+    if (!agentId || !entries) {
       return NextResponse.json(
-        { error: `Missing required fields: ${!agentId ? 'agentId' : ''} ${!knowledgeBaseId ? 'knowledgeBaseId' : ''} ${!entries ? 'entries' : ''}`.trim() },
+        { error: `Missing required fields: ${!agentId ? 'agentId' : ''} ${!entries ? 'entries' : ''}`.trim() },
         { status: 400 }
       )
+    }
+
+    // If no knowledgeBaseId, create new knowledge base
+    if (!knowledgeBaseId) {
+      try {
+        const newKnowledgeBase = await prisma.knowledgeBase.create({
+          data: {
+            agentId,
+            industry: "General Knowledge",
+            useCase: "Information Management",
+            mainGoals: ["Collect and organize information"],
+            entries: {
+              create: entries.map(entry => ({
+                question: entry.question,
+                answer: entry.answer,
+                source: entry.source || 'manual',
+                orderIndex: entry.orderIndex || 0
+              }))
+            }
+          },
+          include: {
+            entries: {
+              orderBy: { orderIndex: 'asc' }
+            }
+          }
+        })
+
+        return NextResponse.json({
+          success: true,
+          knowledgeBase: newKnowledgeBase
+        })
+      } catch (error) {
+        console.error('Error creating knowledge base:', error)
+        return NextResponse.json({
+          error: "Failed to create knowledge base",
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 })
+      }
     }
 
     // First verify the knowledge base exists and belongs to the agent

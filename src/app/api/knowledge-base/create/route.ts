@@ -14,10 +14,18 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { agentId, purpose, entries } = await request.json()
+    const { agentId, entries } = await request.json()
+
+    if (!agentId) {
+      return NextResponse.json(
+        { error: "Missing required field: agentId" },
+        { status: 400 }
+      )
+    }
+
     const model = genAI.getGenerativeModel({ model: "gemini-pro" })
 
-    // Process entries with Gemini for better formatting and consistency
+    // Process entries with Gemini for better formatting
     const processedEntries = await Promise.all(
       entries.map(async (entry: { question: string; answer: string }) => {
         const prompt = `Improve and format this knowledge base entry while maintaining its core meaning:
@@ -36,35 +44,41 @@ export async function POST(request: Request) {
           return JSON.parse(response)
         } catch (error) {
           console.error('Error parsing Gemini response for entry:', response)
-          // Return original entry if parsing fails
           return entry
         }
       })
     )
 
-    // Create knowledge base and entries in a transaction
+    // Create knowledge base with default values
     const knowledgeBase = await prisma.$transaction(async (tx) => {
       const kb = await tx.knowledgeBase.create({
         data: {
           agentId,
-          industry: purpose.industry,
-          useCase: purpose.useCase,
-          mainGoals: purpose.mainGoals,
+          industry: "General Knowledge",
+          useCase: "Information Management",
+          mainGoals: ["Collect and organize information"],
+          entries: {
+            create: processedEntries.map(entry => ({
+              question: entry.question,
+              answer: entry.answer,
+              source: 'manual'
+            }))
+          }
+        },
+        include: {
+          entries: true
         }
-      })
-
-      await tx.knowledgeBaseEntry.createMany({
-        data: processedEntries.map(entry => ({
-          knowledgeBaseId: kb.id,
-          question: entry.question,
-          answer: entry.answer
-        }))
       })
 
       return kb
     })
 
-    return NextResponse.json(knowledgeBase)
+    return NextResponse.json({
+      success: true,
+      id: knowledgeBase.id,
+      data: knowledgeBase
+    })
+
   } catch (error) {
     console.error('Error creating knowledge base:', error)
     return NextResponse.json(

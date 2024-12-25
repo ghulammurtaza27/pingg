@@ -77,6 +77,7 @@ const KnowledgeBaseCreation: React.FC<{ agentId: string; onComplete: () => void 
   const [isGeneratingQuestions, setIsGeneratingQuestions] = useState(false)
   const [questionRetryCount, setQuestionRetryCount] = useState(0)
   const maxRetries = 3
+  const [hasFetched, setHasFetched] = useState(false)
 
   const initializeNewConversation = async () => {
     try {
@@ -212,26 +213,14 @@ const KnowledgeBaseCreation: React.FC<{ agentId: string; onComplete: () => void 
 
   useEffect(() => {
     const fetchExistingKnowledgeBase = async () => {
-      if (!agentId) {
-      
-        setError('Agent ID is required')
-        setIsInitialLoading(false)
-        return
-      }
+      if (hasFetched || !agentId) return
       
       setIsInitialLoading(true)
       setError(null)
 
       try {
-     
-        
-        const response = await fetch(`/api/knowledge-base/get-by-agent?agentId=${agentId}`, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        })
-
+        const response = await fetch(`/api/knowledge-base/get-by-agent?agentId=${agentId}`)
         const data = await response.json()
- 
 
         if (!response.ok) {
           throw new Error(data.error?.message || `HTTP error! status: ${response.status}`)
@@ -253,11 +242,12 @@ const KnowledgeBaseCreation: React.FC<{ agentId: string; onComplete: () => void 
         await initializeNewConversation()
       } finally {
         setIsInitialLoading(false)
+        setHasFetched(true)
       }
     }
 
     fetchExistingKnowledgeBase()
-  }, [agentId, initializeNewConversation])
+  }, [agentId, hasFetched])
 
   useEffect(() => {
     questionRefs.current = questionRefs.current.slice(0, conversation.length)
@@ -282,14 +272,47 @@ const KnowledgeBaseCreation: React.FC<{ agentId: string; onComplete: () => void 
         answer: currentAnswer
       }
 
-      await handleUpdate(updatedConversation)
+      // If no knowledgeBaseId exists, create new knowledge base
+      if (!knowledgeBaseId) {
+        const createResponse = await fetch('/api/knowledge-base/create', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            agentId,
+            purpose: {
+              industry: "General Knowledge",
+              useCase: "Information Management",
+              mainGoals: ["Collect and organize information"]
+            },
+            entries: [{
+              question: updatedConversation[currentIndex].question,
+              answer: currentAnswer,
+              source: 'manual'
+            }]
+          })
+        })
+
+        const data = await createResponse.json()
+        
+        if (!createResponse.ok) {
+          throw new Error(data.error || 'Failed to create knowledge base')
+        }
+
+        setKnowledgeBaseId(data.id)
+        setKnowledgeBase(data)
+      } else {
+        // If knowledge base exists, update it
+        await handleUpdate(updatedConversation)
+      }
+
       setConversation(updatedConversation)
       setCurrentAnswer('')
 
-      // Show loading state before generating new questions
+      // Continue with generating new questions...
       if (currentIndex >= updatedConversation.length - 1) {
         setIsGeneratingQuestions(true)
-        
         try {
           const followUpQuestions = await generateFollowUpQuestions(
             updatedConversation[currentIndex].question,
