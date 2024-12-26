@@ -1,3 +1,4 @@
+/* eslint-disable react/no-unescaped-entities */
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -15,6 +16,31 @@ const styles = {
   heading: "text-[2.5rem] sm:text-[3.5rem] md:text-[5rem] lg:text-[6.5rem] font-bold tracking-tight leading-[0.95]",
   gradient: "bg-gradient-to-r from-sky-400 via-blue-500 to-sky-600",
 }
+
+const stats = [
+  { number: '2x', label: 'Faster Email Processing' },
+  { number: '90%', label: 'Less Email Anxiety' },
+  { number: '24/7', label: 'AI-Powered Filtering' },
+  { number: '1-Click', label: 'Gmail Integration' }
+]
+
+const features = [
+  {
+    icon: <Bot className="h-6 w-6" />,
+    title: 'Context Aware',
+    description: 'Your knowledge base trains the AI to understand what matters to you.'
+  },
+  {
+    icon: <Zap className="h-6 w-6" />,
+    title: 'Relevance Scoring',
+    description: 'Only see emails that are relevant to your interests or business needs.'
+  },
+  {
+    icon: <Layers className="h-6 w-6" />,
+    title: 'Seamless Integration',
+    description: 'Works with your existing email platforms for an effortless setup.'
+  }
+]
 
 export function LandingPage() {
   const [mounted, setMounted] = useState(false)
@@ -42,84 +68,92 @@ export function LandingPage() {
         </div>
 
         {/* Hero Section */}
-        <section className="min-h-[90vh] flex items-center relative overflow-hidden pt-20 pb-32">
+        <section className="min-h-[90vh] relative overflow-hidden pt-20 pb-32">
           <div className={styles.container}>
-            <div className="max-w-[60%] relative z-10">
-              <div className="space-y-16">
-                {/* Enhanced badge */}
-                <motion.div
-                  initial={{ opacity: 0, y: -20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2, duration: 0.8 }}
-                >
-                  <span className={`${styles.badge} bg-sky-500/10 backdrop-blur-sm border border-sky-500/20 shadow-lg shadow-sky-500/20`}>
-                    <Mail className="w-4 h-4 mr-2 text-sky-400" />
-                    <span className={`${styles.gradient} bg-clip-text text-transparent`}>
-                      Intelligent Email Management
+            <div className="flex flex-col md:flex-row items-center gap-12 md:gap-0">
+              {/* Content container */}
+              <div className="relative z-10 w-full md:max-w-[60%]">
+                <div className="space-y-8 md:space-y-16">
+                  {/* Badge */}
+                  <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2, duration: 0.8 }}
+                  >
+                    <span className={`${styles.badge} bg-sky-500/10 backdrop-blur-sm border border-sky-500/20 shadow-lg shadow-sky-500/20`}>
+                      <Mail className="w-4 h-4 mr-2 text-sky-400" />
+                      <span className={`${styles.gradient} bg-clip-text text-transparent`}>
+                        Intelligent Email Management
+                      </span>
                     </span>
-                  </span>
-                </motion.div>
+                  </motion.div>
 
-                {/* Enhanced heading */}
+                  {/* Heading */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="space-y-6 md:space-y-8"
+                  >
+                    <h1 className="text-[2.5rem] sm:text-[3.5rem] md:text-[5rem] lg:text-[6.5rem] font-bold tracking-tight leading-[1] md:leading-[0.95]">
+                      <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
+                        Make email work for you
+                      </span>
+                    </h1>
+                    <p className="text-base sm:text-lg md:text-xl text-gray-400 font-light tracking-wide leading-relaxed max-w-xl">
+                      AI-powered email filtering that understands your context. 
+                      Press <kbd className="px-2 py-1 bg-sky-500/10 rounded-md border border-sky-500/20 font-mono text-sm text-sky-400">R</kbd> to begin.
+                    </p>
+                  </motion.div>
+
+                  {/* Buttons */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4, duration: 0.8 }}
+                    className="flex flex-col sm:flex-row gap-4"
+                  >
+                    <Button 
+                      size="lg"
+                      className={`${styles.gradient} text-white hover:opacity-90 text-base px-8 h-12 rounded-full shadow-lg shadow-sky-500/20 w-full sm:w-auto`}
+                      asChild
+                    >
+                      <Link href="/register">
+                        Get Started
+                        <ArrowRight className="ml-2 h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="lg"
+                      className="text-base px-8 h-12 rounded-full border-sky-500/20 hover:bg-sky-500/10 text-sky-400 w-full sm:w-auto"
+                      onClick={() => setIsEmailDialogOpen(true)}
+                    >
+                      Contact
+                    </Button>
+                  </motion.div>
+                </div>
+              </div>
+
+              {/* Hero Animation - now part of the flex layout */}
+              <div className="w-full md:w-auto md:absolute md:right-[15%] md:top-1/2 md:-translate-y-1/2">
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.8 }}
-                  className="space-y-8"
+                  transition={{ delay: 0.6, duration: 0.8 }}
                 >
-                  <h1 className={styles.heading}>
-                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
-                      Make email work for you
-                    </span>
-                  </h1>
-                  <p className="text-lg md:text-xl text-gray-400 font-light tracking-wide leading-relaxed max-w-xl">
-                    AI-powered email filtering that understands your context. 
-                    Press <kbd className="px-2 py-1 bg-sky-500/10 rounded-md border border-sky-500/20 font-mono text-sm text-sky-400">R</kbd> to begin.
-                  </p>
-                </motion.div>
-
-                {/* Enhanced CTA buttons */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4, duration: 0.8 }}
-                  className="flex flex-wrap gap-4"
-                >
-                  <Button 
-                    size="lg"
-                    className={`${styles.gradient} text-white hover:opacity-90 text-base px-8 h-12 rounded-full shadow-lg shadow-sky-500/20`}
-                    asChild
-                  >
-                    <Link href="/register">
-                      Get Started
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="lg"
-                    className="text-base px-8 h-12 rounded-full border-sky-500/20 hover:bg-sky-500/10 text-sky-400"
-                    onClick={() => setIsEmailDialogOpen(true)}
-                  >
-                    Contact
-                  </Button>
+                  <HeroAnimation />
                 </motion.div>
               </div>
             </div>
           </div>
-          <HeroAnimation />
         </section>
 
         {/* Stats Section */}
         <section className="py-24 relative border-t border-sky-500/10">
           <div className={styles.container}>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-              {[
-                { number: "2x", label: "Faster Email Processing" },
-                { number: "90%", label: "Less Email Anxiety" },
-                { number: "24/7", label: "AI-Powered Filtering" },
-                { number: "1-Click", label: "Gmail Integration" },
-              ].map((stat, i) => (
+              {stats.map((stat, i) => (
                 <motion.div
                   key={stat.label}
                   initial={{ opacity: 0, y: 20 }}
@@ -156,23 +190,7 @@ export function LandingPage() {
             </motion.div>
 
             <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
-              {[
-                {
-                  icon: <Bot className="h-6 w-6" />,
-                  title: "Context Aware",
-                  description: "Your knowledge base trains the AI to understand what matters to you."
-                },
-                {
-                  icon: <Zap className="h-6 w-6" />,
-                  title: "Relevance Scoring",
-                  description: "Only see emails that are relevant to your interests or business needs."
-                },
-                {
-                  icon: <Layers className="h-6 w-6" />,
-                  title: "Seamless Integration",
-                  description: "Works with your existing email platforms for an effortless setup."
-                }
-              ].map((feature, i) => (
+              {features.map((feature, i) => (
                 <FeatureCard key={feature.title} {...feature} delay={i * 0.2} />
               ))}
             </div>
@@ -195,7 +213,7 @@ export function LandingPage() {
                 they can change email, are the ones who do
               </h3>
               <p className="text-gray-400 text-lg">
-                Let's make something amazing, together.
+                Let&apos;s make something amazing, together.
               </p>
               <Button 
                 size="lg" 

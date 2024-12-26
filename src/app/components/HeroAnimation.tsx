@@ -14,12 +14,12 @@ export function HeroAnimation() {
   if (!mounted) return null
 
   return (
-    <div className="absolute right-[15%] top-1/2 -translate-y-1/2 z-0 opacity-70 pointer-events-none select-none">
-      <div className="relative w-[35vw] h-[40vh]">
+    <div className="relative w-full md:w-[35vw] h-[40vh] min-h-[300px] opacity-70 pointer-events-none select-none">
+      <div className="absolute inset-0 flex items-center justify-center md:justify-start">
         {[0, 1, 2, 3].map((i) => (
           <motion.div
             key={i}
-            className="absolute right-[40px]"
+            className="absolute"
             initial={{ 
               y: 40 * i,
               x: -20 * i,

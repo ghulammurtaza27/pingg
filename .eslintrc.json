@@ -11,6 +11,7 @@
     "react-hooks/exhaustive-deps": "warn",
     "prefer-const": "warn",
     "no-var": "warn",
-    "react/jsx-no-undef": "error"
+    "react/jsx-no-undef": "error",
+    "react/no-unescaped-entities": "off"
   }
 }

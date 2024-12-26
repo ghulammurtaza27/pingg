@@ -32,7 +32,7 @@ export function EmailDialog({
             Request Early Access
           </DialogTitle>
           <DialogDescription className="text-gray-400">
-            Please reach out if you'd like access to the web app. We're currently in private beta.
+            Please reach out if you&apos;d like access to the web app. We&apos;re currently in private beta.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
