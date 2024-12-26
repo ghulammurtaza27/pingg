@@ -112,9 +112,12 @@ export function LandingPage() {
                 <Button 
                   size="lg" 
                   className={`${gradientClasses.background} ${gradientClasses.backgroundHover} text-lg px-8`}
+                  asChild
                 >
-                  Get Started
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <Link href="/register">
+                    Get Started
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
                 </Button>
                 <Link href="/how-it-works">
                   <Button 
@@ -199,9 +202,12 @@ export function LandingPage() {
                 <Button 
                   size="lg" 
                   className={`${gradientClasses.background} ${gradientClasses.backgroundHover} text-lg px-8`}
+                  asChild
                 >
-                  Get Started Now
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <Link href="/register">
+                    Get Started Now
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Link>
                 </Button>
               </div>
             </motion.div>
