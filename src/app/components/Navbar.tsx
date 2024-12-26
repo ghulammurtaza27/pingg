@@ -44,7 +44,7 @@ export function Navbar() {
   const { data: session } = useSession()
   const router = useRouter()
   const pathname = usePathname()
-  const isLandingPage = pathname === '/' || pathname === '/login' || pathname === '/register'
+  const isLandingPage = pathname === '/' || pathname === '/login' || pathname === '/register' || pathname === '/how-it-works'
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [open, setOpen] = useState(false)
 

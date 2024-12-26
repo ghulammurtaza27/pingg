@@ -2,218 +2,219 @@
 
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { Bot, Zap, Layers, ArrowRight, CheckCircle2 } from 'lucide-react'
+import { Bot, Zap, Layers, ArrowRight, Mail } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { EmailDialog } from './EmailDialog'
+import { HeroAnimation } from './HeroAnimation'
+import { Footer } from './Footer'
 
-const gradientClasses = {
-  background: "bg-gradient-to-r from-sky-500 to-blue-600",
-  backgroundHover: "hover:from-sky-600 hover:to-blue-700",
-  text: "bg-gradient-to-r from-sky-400 to-blue-400",
-  border: "border-sky-500/20",
-  borderHover: "hover:border-sky-500/50",
-  bgTranslucent: "from-sky-900/50 to-blue-900/50",
-  iconBg: "from-sky-500/20 to-blue-500/20"
+const styles = {
+  container: "max-w-[120rem] mx-auto px-6 md:px-12 lg:px-24",
+  badge: "inline-flex items-center rounded-full px-5 py-1.5 text-sm font-medium tracking-wide",
+  heading: "text-[2.5rem] sm:text-[3.5rem] md:text-[5rem] lg:text-[6.5rem] font-bold tracking-tight leading-[0.95]",
+  gradient: "bg-gradient-to-r from-sky-400 via-blue-500 to-sky-600",
 }
 
 export function LandingPage() {
   const [mounted, setMounted] = useState(false)
-
-  const benefits = [
-    "Never miss important emails",
-    "Save hours of email sorting",
-    "Reduce email anxiety",
-    "Focus on what matters"
-  ]
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false)
 
   useEffect(() => {
     setMounted(true)
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.key.toLowerCase() === 'r') setIsEmailDialogOpen(true)
+    }
+    window.addEventListener('keypress', handleKeyPress)
+    return () => window.removeEventListener('keypress', handleKeyPress)
   }, [])
 
   if (!mounted) return null
 
   return (
-    <div className="flex flex-col min-h-screen overflow-hidden">
+    <div className="flex flex-col min-h-screen overflow-hidden bg-black selection:bg-sky-500/20 selection:text-sky-200">
       <main className="flex-grow relative">
-        {/* Animated gradient background */}
-        <div className="absolute inset-0 -z-10">
+        {/* Enhanced gradient background */}
+        <div className="fixed inset-0 -z-10">
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-sky-900/20 via-black to-black" />
-          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
+          <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:60px_60px]" />
+          <div className="absolute inset-0 backdrop-blur-3xl" />
         </div>
 
         {/* Hero Section */}
-        <section className="relative min-h-screen flex items-center justify-center py-32 md:py-48">
-          <div className="container px-4 md:px-6 mx-auto">
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              className="flex flex-col items-center text-center space-y-8 max-w-4xl mx-auto"
-            >
-              {/* Floating badge */}
-              <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-                className={`rounded-full bg-gradient-to-r ${gradientClasses.iconBg} border ${gradientClasses.border} px-4 py-2 mb-8`}
-              >
-                <span className={`text-sm font-medium ${gradientClasses.text} bg-clip-text text-transparent`}>
-                  Intelligent Email Management
-                </span>
-              </motion.div>
-
-              <motion.h1
-                initial={{ scale: 0.95 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 0.8, ease: "easeOut" }}
-                className="text-5xl md:text-7xl font-bold tracking-tighter"
-              >
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-500">
-                  Stop Missing Important Emails
-                </span>
-              </motion.h1>
-              
-              <motion.p 
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2, duration: 0.8 }}
-                className="text-xl md:text-2xl text-gray-400 max-w-[800px]"
-              >
-                Ping filters emails based on your knowledge base. Only see what matters.
-              </motion.p>
-
-              {/* Benefits list */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3, duration: 0.8 }}
-                className="grid grid-cols-2 gap-4 mt-8"
-              >
-                {benefits.map((benefit, index) => (
-                  <motion.div
-                    key={benefit}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 + index * 0.1, duration: 0.6 }}
-                    className="flex items-center space-x-2"
-                  >
-                    <CheckCircle2 className="h-5 w-5 text-sky-500" />
-                    <span className="text-gray-300">{benefit}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4, duration: 0.8 }}
-                className="flex flex-col sm:flex-row gap-4 mt-8"
-              >
-                <Button 
-                  size="lg" 
-                  className={`${gradientClasses.background} ${gradientClasses.backgroundHover} text-lg px-8`}
-                  asChild
+        <section className="min-h-[90vh] flex items-center relative overflow-hidden pt-20 pb-32">
+          <div className={styles.container}>
+            <div className="max-w-[60%] relative z-10">
+              <div className="space-y-16">
+                {/* Enhanced badge */}
+                <motion.div
+                  initial={{ opacity: 0, y: -20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2, duration: 0.8 }}
                 >
-                  <Link href="/register">
-                    Get Started
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                <Link href="/how-it-works">
+                  <span className={`${styles.badge} bg-sky-500/10 backdrop-blur-sm border border-sky-500/20 shadow-lg shadow-sky-500/20`}>
+                    <Mail className="w-4 h-4 mr-2 text-sky-400" />
+                    <span className={`${styles.gradient} bg-clip-text text-transparent`}>
+                      Intelligent Email Management
+                    </span>
+                  </span>
+                </motion.div>
+
+                {/* Enhanced heading */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8 }}
+                  className="space-y-8"
+                >
+                  <h1 className={styles.heading}>
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white to-white/70">
+                      Make email work for you
+                    </span>
+                  </h1>
+                  <p className="text-lg md:text-xl text-gray-400 font-light tracking-wide leading-relaxed max-w-xl">
+                    AI-powered email filtering that understands your context. 
+                    Press <kbd className="px-2 py-1 bg-sky-500/10 rounded-md border border-sky-500/20 font-mono text-sm text-sky-400">R</kbd> to begin.
+                  </p>
+                </motion.div>
+
+                {/* Enhanced CTA buttons */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.8 }}
+                  className="flex flex-wrap gap-4"
+                >
+                  <Button 
+                    size="lg"
+                    className={`${styles.gradient} text-white hover:opacity-90 text-base px-8 h-12 rounded-full shadow-lg shadow-sky-500/20`}
+                    asChild
+                  >
+                    <Link href="/register">
+                      Get Started
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
                   <Button 
                     variant="outline" 
                     size="lg"
-                    className="text-lg px-8 border-gray-700 hover:bg-gray-800"
+                    className="text-base px-8 h-12 rounded-full border-sky-500/20 hover:bg-sky-500/10 text-sky-400"
+                    onClick={() => setIsEmailDialogOpen(true)}
                   >
-                    Learn More
+                    Contact
                   </Button>
-                </Link>
-              </motion.div>
-            </motion.div>
+                </motion.div>
+              </div>
+            </div>
+          </div>
+          <HeroAnimation />
+        </section>
+
+        {/* Stats Section */}
+        <section className="py-24 relative border-t border-sky-500/10">
+          <div className={styles.container}>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+              {[
+                { number: "2x", label: "Faster Email Processing" },
+                { number: "90%", label: "Less Email Anxiety" },
+                { number: "24/7", label: "AI-Powered Filtering" },
+                { number: "1-Click", label: "Gmail Integration" },
+              ].map((stat, i) => (
+                <motion.div
+                  key={stat.label}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1, duration: 0.8 }}
+                  viewport={{ once: true }}
+                  className="text-center space-y-2"
+                >
+                  <div className={`text-3xl md:text-4xl font-bold ${styles.gradient} bg-clip-text text-transparent`}>
+                    {stat.number}
+                  </div>
+                  <div className="text-sm text-gray-400">{stat.label}</div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         </section>
-        
+
         {/* Features Section */}
-        <section className="py-24 md:py-32 relative">
-          <div className="container px-4 md:px-6 mx-auto">
+        <section className="py-32 relative border-t border-sky-500/10">
+          <div className={styles.container}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-center mb-16"
+              className="space-y-4 text-center mb-24"
             >
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Powerful Features
+              <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
+                We specialize in email intelligence
               </h2>
               <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                Everything you need to take control of your inbox
+                Building the future of email management with AI
               </p>
             </motion.div>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-              viewport={{ once: true }}
-              className="grid gap-8 md:grid-cols-3 max-w-5xl mx-auto"
-            >
-              <FeatureCard
-                icon={<Bot className="h-8 w-8" />}
-                title="Smart Filtering"
-                description="AI learns from your knowledge base to prioritize emails that truly matter to you."
-                delay={0}
-                gradientClasses={gradientClasses}
-              />
-              <FeatureCard
-                icon={<Zap className="h-8 w-8" />}
-                title="Relevance Scoring"
-                description="Only see emails that are relevant to your interests or business needs."
-                delay={0.2}
-                gradientClasses={gradientClasses}
-              />
-              <FeatureCard
-                icon={<Layers className="h-8 w-8" />}
-                title="Seamless Integration"
-                description="Works with your existing email platforms for an effortless setup."
-                delay={0.4}
-                gradientClasses={gradientClasses}
-              />
-            </motion.div>
+            <div className="grid gap-8 md:grid-cols-3 max-w-6xl mx-auto">
+              {[
+                {
+                  icon: <Bot className="h-6 w-6" />,
+                  title: "Context Aware",
+                  description: "Your knowledge base trains the AI to understand what matters to you."
+                },
+                {
+                  icon: <Zap className="h-6 w-6" />,
+                  title: "Relevance Scoring",
+                  description: "Only see emails that are relevant to your interests or business needs."
+                },
+                {
+                  icon: <Layers className="h-6 w-6" />,
+                  title: "Seamless Integration",
+                  description: "Works with your existing email platforms for an effortless setup."
+                }
+              ].map((feature, i) => (
+                <FeatureCard key={feature.title} {...feature} delay={i * 0.2} />
+              ))}
+            </div>
           </div>
         </section>
 
-        {/* CTA Section */}
-        <section className="py-20 relative">
-          <div className="container px-4 md:px-6 mx-auto">
+        {/* Final CTA Section */}
+        <section className="py-32 relative border-t border-sky-500/10">
+          <div className={styles.container}>
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
               viewport={{ once: true }}
-              className={`relative rounded-2xl overflow-hidden bg-gradient-to-r ${gradientClasses.bgTranslucent} p-8 md:p-12`}
+              className="text-center max-w-3xl mx-auto space-y-8"
             >
-              <div className="relative z-10 text-center max-w-2xl mx-auto">
-                <h3 className="text-2xl md:text-3xl font-bold mb-4">
-                  Ready to transform your inbox?
-                </h3>
-                <p className="text-gray-300 mb-8">
-                  Join thousands of professionals who have already simplified their email workflow.
-                </p>
-                <Button 
-                  size="lg" 
-                  className={`${gradientClasses.background} ${gradientClasses.backgroundHover} text-lg px-8`}
-                  asChild
-                >
-                  <Link href="/register">
-                    Get Started Now
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-              </div>
+              <h3 className="text-3xl md:text-4xl font-bold tracking-tight">
+                those who are crazy enough to think
+                <br />
+                they can change email, are the ones who do
+              </h3>
+              <p className="text-gray-400 text-lg">
+                Let's make something amazing, together.
+              </p>
+              <Button 
+                size="lg" 
+                className={`${styles.gradient} text-white hover:opacity-90 text-base px-8 h-12 rounded-full shadow-lg shadow-sky-500/20 mt-4`}
+                onClick={() => setIsEmailDialogOpen(true)}
+              >
+                Get in touch
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </motion.div>
           </div>
         </section>
       </main>
+      
+      <Footer />
+      <EmailDialog 
+        isOpen={isEmailDialogOpen} 
+        onClose={() => setIsEmailDialogOpen(false)} 
+      />
     </div>
   )
 }
@@ -222,22 +223,12 @@ function FeatureCard({
   icon, 
   title, 
   description, 
-  delay,
-  gradientClasses 
+  delay 
 }: { 
   icon: React.ReactNode
   title: string
   description: string
   delay: number
-  gradientClasses: {
-    background: string
-    backgroundHover: string
-    text: string
-    border: string
-    borderHover: string
-    bgTranslucent: string
-    iconBg: string
-  }
 }) {
   return (
     <motion.div
@@ -245,15 +236,14 @@ function FeatureCard({
       whileInView={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.8 }}
       viewport={{ once: true }}
-      whileHover={{ scale: 1.05 }}
-      className={`relative rounded-lg border border-gray-800 bg-black/50 backdrop-blur-sm p-8 ${gradientClasses.borderHover} transition-all`}
+      className="group relative"
     >
-      <div className="flex flex-col space-y-4">
-        <div className={`p-2 w-fit rounded-lg bg-gradient-to-br ${gradientClasses.iconBg}`}>
+      <div className="relative space-y-6 p-8 rounded-2xl border border-sky-500/10 bg-sky-500/5 backdrop-blur-sm hover:bg-sky-500/10 transition-colors">
+        <div className="p-3 w-fit rounded-xl bg-sky-500/10 border border-sky-500/20">
           {icon}
         </div>
-        <h3 className="text-xl font-semibold">{title}</h3>
-        <p className="text-gray-400 leading-relaxed">{description}</p>
+        <h3 className="text-xl font-semibold tracking-tight">{title}</h3>
+        <p className="text-gray-400 leading-relaxed text-sm">{description}</p>
       </div>
     </motion.div>
   )

@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/app/components/theme-provider"
 import AuthProvider from './context/AuthProvider'
 import { Toaster } from 'sonner'
 import { Notifications } from './components/Notifications'
+import { Analytics } from "@vercel/analytics/react"
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -68,6 +69,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.className} antialiased`}>
+        
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -83,6 +85,7 @@ export default function RootLayout({
             </div>
           </AuthProvider>
         </ThemeProvider>
+        <Analytics />
         <Toaster 
           position="top-right" 
           richColors 
